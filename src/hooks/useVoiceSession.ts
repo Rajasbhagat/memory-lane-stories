@@ -1,6 +1,36 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Convert raw PCM bytes to a valid WAV ArrayBuffer for browser playback */
+function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bitDepth: number): ArrayBuffer {
+  const byteRate = sampleRate * channels * (bitDepth / 8);
+  const blockAlign = channels * (bitDepth / 8);
+  const dataSize = pcmData.length;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+  };
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  new Uint8Array(buffer, 44).set(pcmData);
+  return buffer;
+}
+
 export type VoiceState = "idle" | "listening" | "processing" | "speaking";
 
 export function useVoiceSession() {
@@ -10,7 +40,7 @@ export function useVoiceSession() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // ElevenLabs TTS — natural female voice
+  // Gemini TTS — warm Sulafat voice
   const playNarration = useCallback(async (text: string) => {
     setVoiceState("speaking");
 
@@ -29,12 +59,22 @@ export function useVoiceSession() {
       );
 
       if (!response.ok) {
-        console.warn("ElevenLabs TTS failed, falling back to browser TTS");
+        console.warn("Gemini TTS failed, falling back to browser TTS");
         fallbackTTS(text);
         return;
       }
 
-      const audioBlob = await response.blob();
+      const data = await response.json();
+      if (!data.audioContent) {
+        console.warn("No audio content, falling back to browser TTS");
+        fallbackTTS(text);
+        return;
+      }
+
+      // Gemini returns raw PCM (Linear16, 24kHz, mono) — convert to WAV for playback
+      const pcmBytes = Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0));
+      const wavBuffer = pcmToWav(pcmBytes, 24000, 1, 16);
+      const audioBlob = new Blob([wavBuffer], { type: "audio/wav" });
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
@@ -52,7 +92,7 @@ export function useVoiceSession() {
 
       await audio.play();
     } catch (e) {
-      console.warn("ElevenLabs TTS error, falling back:", e);
+      console.warn("TTS error, falling back:", e);
       fallbackTTS(text);
     }
   }, []);
