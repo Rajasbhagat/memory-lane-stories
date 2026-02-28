@@ -35,15 +35,6 @@ const VoiceControls = ({
 }: VoiceControlsProps) => {
   const [textInput, setTextInput] = useState("");
 
-  const handleMicClick = () => {
-    if (disabled) return;
-    if (state === "listening") {
-      onStopListening();
-    } else if (state === "idle") {
-      onStartListening();
-    }
-  };
-
   const handleTextSubmit = () => {
     if (textInput.trim() && !disabled) {
       onTextSubmit(textInput.trim());
@@ -82,19 +73,29 @@ const VoiceControls = ({
           <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse-ring" />
         )}
         <Button
-          onClick={handleMicClick}
-          disabled={disabled || state === "processing" || state === "speaking"}
-          className={`min-h-touch-xl min-w-touch-xl rounded-full ${
-            state === "listening"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            if (!disabled && state !== "listening") onStartListening();
+          }}
+          onPointerUp={(e) => {
+            e.preventDefault();
+            if (!disabled && state === "listening") onStopListening();
+          }}
+          onPointerLeave={(e) => {
+            e.preventDefault();
+            if (!disabled && state === "listening") onStopListening();
+          }}
+          disabled={disabled || (state === "processing" && !transcript)}
+          className={`min-h-touch-xl min-w-touch-xl rounded-full touch-none select-none ${state === "listening"
               ? "bg-destructive hover:bg-destructive/90"
               : "bg-primary hover:bg-primary/90"
-          } text-primary-foreground`}
+            } text-primary-foreground`}
           size="icon-lg"
         >
           {state === "listening" ? (
-            <MicOff className="h-10 w-10" />
+            <MicOff className="h-10 w-10 pointer-events-none" />
           ) : (
-            <Mic className="h-10 w-10" />
+            <Mic className="h-10 w-10 pointer-events-none" />
           )}
         </Button>
       </div>
@@ -132,11 +133,11 @@ const VoiceControls = ({
           onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
           placeholder="Or type your answer here..."
           className="flex-1"
-          disabled={disabled}
+          disabled={disabled || state === "processing"}
         />
         <Button
           onClick={handleTextSubmit}
-          disabled={disabled || !textInput.trim()}
+          disabled={disabled || !textInput.trim() || state === "processing"}
           className="min-h-touch min-w-touch rounded-full bg-primary text-primary-foreground"
           size="icon"
         >

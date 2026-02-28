@@ -8,6 +8,8 @@ import Play from "./pages/Play";
 import Summary from "./pages/Summary";
 import NotFound from "./pages/NotFound";
 
+import GeminiDemo from "./pages/GeminiDemo";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -20,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/play" element={<Play />} />
           <Route path="/summary" element={<Summary />} />
+          <Route path="/gemini-demo" element={<GeminiDemo />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
