@@ -4,9 +4,11 @@ interface NPCCompanionProps {
   text: string;
   isTyping?: boolean;
   mood?: "neutral" | "happy" | "thinking";
+  streamingText?: string;
 }
 
-const NPCCompanion = ({ text, isTyping = false, mood = "neutral" }: NPCCompanionProps) => {
+const NPCCompanion = ({ text, isTyping = false, mood = "neutral", streamingText }: NPCCompanionProps) => {
+  const displayText = streamingText || text;
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -76,13 +78,13 @@ const NPCCompanion = ({ text, isTyping = false, mood = "neutral" }: NPCCompanion
         <p className="text-xs font-bold text-primary mb-1">Detective Johnny</p>
         <AnimatePresence mode="wait">
           <motion.p
-            key={text}
+            key={streamingText ? "streaming" : text}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="text-speech text-card-foreground"
           >
-            {text}
+            {displayText}
             {isTyping && (
               <span className="ml-1 inline-flex gap-0.5">
                 <span className="animate-bounce text-primary" style={{ animationDelay: "0ms" }}>.</span>
