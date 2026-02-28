@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          best_star_rating: number | null
+          created_at: string | null
+          display_name: string
+          id: string
+          scenarios_completed: number | null
+          total_hints_used: number | null
+          total_mistakes_spotted: number | null
+          total_sessions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          best_star_rating?: number | null
+          created_at?: string | null
+          display_name: string
+          id?: string
+          scenarios_completed?: number | null
+          total_hints_used?: number | null
+          total_mistakes_spotted?: number | null
+          total_sessions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          best_star_rating?: number | null
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          scenarios_completed?: number | null
+          total_hints_used?: number | null
+          total_mistakes_spotted?: number | null
+          total_sessions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

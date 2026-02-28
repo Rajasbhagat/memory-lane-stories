@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type { GameStats } from "@/hooks/useGameState";
+import { useProfile } from "@/hooks/useProfile";
 import confetti from "canvas-confetti";
 
 const ratingTitles: Record<number, string> = {
@@ -14,6 +15,9 @@ const ratingTitles: Record<number, string> = {
 const Summary = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { updateProfile } = useProfile();
+  const savedRef = useRef(false);
+
   const playerName = localStorage.getItem("mindset-name")?.trim() || "Detective";
   const stats = (location.state as GameStats) || {
     scenariosCompleted: 3,
@@ -23,6 +27,18 @@ const Summary = () => {
 
   const stars = stats.hintsUsed === 0 ? 3 : stats.hintsUsed <= 3 ? 2 : 1;
   const ratingTitle = ratingTitles[stars];
+
+  // Save stats to profile once
+  useEffect(() => {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    updateProfile({
+      mistakesSpotted: stats.mistakesSpotted,
+      hintsUsed: stats.hintsUsed,
+      scenariosCompleted: stats.scenariosCompleted,
+      stars,
+    });
+  }, []);
 
   // Fire confetti on mount
   useEffect(() => {
