@@ -44,6 +44,7 @@ export function useVoiceSession() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [pendingVoiceTranscript, setPendingVoiceTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -286,6 +287,7 @@ export function useVoiceSession() {
       recognition.onresult = (event: any) => {
         const result = event.results[0][0].transcript;
         setTranscript(result);
+        setPendingVoiceTranscript(true);
         setVoiceState("processing");
       };
 
@@ -355,6 +357,8 @@ export function useVoiceSession() {
     voiceError,
     conversationHistory,
     isCorrect,
+    pendingVoiceTranscript,
+    setPendingVoiceTranscript,
     startListening,
     stopListening,
     submitText,

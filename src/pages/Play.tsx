@@ -41,6 +41,8 @@ const Play = () => {
     voiceError,
     conversationHistory,
     isCorrect,
+    pendingVoiceTranscript,
+    setPendingVoiceTranscript,
     startListening,
     stopListening,
     submitText,
@@ -91,12 +93,13 @@ const Play = () => {
     }
   }, [userExchanges, state.phase, isCorrect, onSpeakComplete]);
 
-  // When transcript arrives from speech recognition, send to AI
+  // When transcript arrives from speech recognition (voice only), send to AI
   useEffect(() => {
-    if (transcript && voiceState === "processing" && state.phase === "speak") {
+    if (pendingVoiceTranscript && transcript && voiceState === "processing" && state.phase === "speak") {
+      setPendingVoiceTranscript(false);
       streamResponse(transcript, scenarioContext);
     }
-  }, [transcript, voiceState]);
+  }, [pendingVoiceTranscript, transcript, voiceState]);
 
   // Reset conversation when scenario/phase changes
   useEffect(() => {
