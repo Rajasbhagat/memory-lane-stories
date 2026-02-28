@@ -3,13 +3,13 @@ export interface ScenarioElement {
   label: string;
   isWrong: boolean;
   hint: string;
-  detail?: string; // extra info for envelope matching etc.
+  detail?: string;
 }
 
 export interface HintTier {
   attempt1: string;
   attempt2: string;
-  attempt3: string; // "auto-highlight" tier
+  attempt3: string;
 }
 
 export interface ScenarioPhase {
@@ -56,7 +56,6 @@ function buildScenario1Phase(): ScenarioPhase {
       hint: "There's a duplicate folder! This one shouldn't be in the Tech Kit.",
     });
   } else {
-    // missing-item: extra signed note replaces USB
     baseElements.push({
       id: "signed-note-duplicate",
       label: "Extra Signed Note",
@@ -68,7 +67,7 @@ function buildScenario1Phase(): ScenarioPhase {
   return {
     id: "kit-audit",
     narrative:
-      "Alright, I'm heading out on a case today. I need to pack my two kits — Tech and Evidence. Can you check them for me? Something doesn't look right...",
+      `Alright partner, listen carefully. I've got a big case today — a surveillance operation across town. Before I head out, I need to make sure my two field kits are packed properly. The Tech Kit should have all my electronic gear: my phone, the power bank, and a spare battery. The Evidence Kit needs the case folder, the USB drive with the witness interview, and a signed authorization note from the captain. I laid everything out on my desk this morning, but I was in a rush and I think I may have mixed something up. Take a good look at each item and tell me — does anything seem out of place? Remember, every item needs to be in the right kit, nothing should be doubled, and nothing should be missing.`,
     prompt: "What looks wrong with the kits?",
     elements: baseElements,
     successMessage: "That's it! Nice catch, Detective!",
@@ -116,7 +115,7 @@ function buildScenario2Phase(): ScenarioPhase {
   return {
     id: "kitchen-check",
     narrative:
-      "Quick stop at the safehouse — made some coffee and a bite to eat. I need to head out soon. Before I go, does everything look safe to leave?",
+      `Okay, I just stopped by the safehouse to grab a quick bite and some coffee before my afternoon shift. I made myself some eggs in the frying pan, boiled water in the kettle for tea, and poured some into my thermos for the road. I also left some important case documents on the counter — they're the witness statements I need to review later. Now, I'm about to head out the door, but before I leave, I need you to look around the kitchen carefully. Is there anything that could be dangerous or cause a problem if I just walk out right now? Think about fire risks, heat damage, and anything time-sensitive. Take your time and look at everything.`,
     prompt: "What's not safe in the kitchen?",
     elements: baseElements,
     successMessage: "Phew, good thing you caught that! Could have been a disaster.",
@@ -149,7 +148,7 @@ export const scenarios: Scenario[] = [
       {
         id: "route-selection",
         narrative:
-          "I've got 30 minutes to get to the print shop on Baker Street and deliver the envelope to the station. Which route should I take?",
+          `Here's the situation: I've got exactly 30 minutes to get across town to the print shop on Baker Street. I need to pick up an important evidence envelope and then deliver it to the police station before they close for the day. I'm looking at the map and I see three possible routes. The Main Road goes straight through — it's the most direct path with clear traffic today. The Park Detour winds through the city park, which is nice and scenic but adds about 20 extra minutes to the trip. Then there's the Construction Shortcut — it cuts through a neighborhood that's under heavy roadworks right now, so the timing is unpredictable. Given that I only have half an hour and this evidence can't be late, which route should I take? Think about what's most reliable.`,
         prompt: "Which route is the safest and quickest?",
         elements: [
           { id: "route-direct", label: "Main Road (Direct)", isWrong: false, hint: "The main road is direct and clear — good choice!" },
@@ -166,7 +165,7 @@ export const scenarios: Scenario[] = [
       {
         id: "street-distractions",
         narrative:
-          "Almost there, but I see some things on the way that could slow me down. What should I watch out for?",
+          `Great, we're on the main road now and making good time. But as we get closer to Baker Street, I'm noticing a few things along the way that could slow us down or throw us off course. There's a café called "Quick Beans" with a big sign outside that says "Stop in! 2-minute coffee!" — it smells amazing. Then I see a hand-painted sign pointing down a dark alley that says "Shortcut this way." And up ahead, there's a big crowd gathered around a street performer, blocking part of the sidewalk. There's also the print shop entrance right there on the corner, some people walking by, and a Baker Street sign on the lamppost. I need to stay focused on the mission. Can you point out which things on this street could distract me or lead me astray?`,
         prompt: "What could distract us?",
         elements: [
           { id: "coffee-shop", label: "Quick Beans Café", isWrong: true, hint: "That coffee shop smells great, but we can't stop now!" },
@@ -186,7 +185,7 @@ export const scenarios: Scenario[] = [
       {
         id: "print-shop",
         narrative:
-          "Here we are at the print shop. I need the envelope for case #4712, filed by Officer Martinez. Let me check my note...",
+          `We made it to the print shop! Now here's the tricky part. The clerk has four envelopes on the counter, and they all look similar. I need to pick up the one that matches my case file exactly. Let me check the note the captain gave me this morning. It says: Case number 4712, filed by Officer Martinez, and it must be the ORIGINAL document — not a copy. Look at each envelope carefully. Envelope A says case number 4712, Officer Martinez, and it's marked ORIGINAL. Envelope B says case number 4712, but the officer name is "Martin" — not Martinez. Envelope C has Martinez's name but the case number is 4721 — the digits are flipped. And Envelope D has the right case number and the right name, but it's stamped as a COPY instead of an ORIGINAL. Which one is the correct envelope?`,
         prompt: "Which envelope matches our case?",
         elements: [
           { id: "envelope-a", label: "Envelope A", isWrong: false, hint: "#4712, Martinez, ORIGINAL — that's the one!", detail: "#4712 · Martinez · ORIGINAL" },
