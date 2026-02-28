@@ -1,48 +1,90 @@
 
 
-## Plan: Add 5 Scenario Cards on Home Screen with Selection
+## Analysis: Current Voice System
 
-### 1. Add 2 new scenarios to `src/data/scenarios.ts`
+The current system uses **REST API calls**, not WebSockets:
+- `gemini-voice` edge function: REST call to Lovable AI gateway for NPC text replies
+- `elevenlabs-tts` edge function: REST call to Gemini TTS API for audio
+- Browser Web Speech API: for speech-to-text
 
-Currently there are 3 scenarios. Add 2 more:
+The Gemini Multimodal Live API requires a persistent WebSocket connection. However, **Lovable Cloud edge functions do not support WebSocket upgrades**, so a direct WebSocket proxy is not possible.
 
-**Scenario 4: "Witness Interview Room"** — Johnny is reviewing witness statements before an interview. One statement has inconsistent details (wrong date, mismatched description, or contradicting alibi). Single phase, randomized error type.
+## Proposed Architecture: Streaming Live Conversation
 
-**Scenario 5: "Parking Lot Surveillance"** — Johnny is reviewing security camera footage of a parking lot. He needs to spot which car doesn't match the suspect vehicle description. Single phase, randomized error type (wrong color, wrong plate format, wrong car model).
+The best approach within platform constraints is a **streaming conversation loop** that feels live and responsive:
 
-Also add metadata to the `Scenario` interface: `description`, `icon` (emoji), `difficulty` (1-3), and `phaseCount`.
+```text
+User speaks (Web Speech API)
+       │
+       ▼
+Browser sends transcript to edge function
+       │
+       ▼
+Edge function streams AI reply via SSE (Lovable AI gateway)
+       │
+       ▼
+Client renders text token-by-token in speech bubble
+       │
+       ▼
+Once full reply arrives, call TTS edge function for audio
+       │
+       ▼
+Play audio while showing text → user can respond again
+```
 
-### 2. Update `src/pages/Index.tsx` — Add scenario selection grid
+This creates a **continuous conversation loop** where the user and Johnny go back and forth naturally, not just one exchange per phase.
 
-Below the profile card and above the CTA, add a "Choose Your Mission" section with 5 scenario cards in a scrollable list. Each card shows:
-- Emoji icon + title
-- Short description
-- Difficulty badge (Easy/Medium/Hard)
-- Phase count
-- Locked/unlocked state (all unlocked for now)
+---
 
-Tapping a card selects it (highlighted border). The CTA button updates to "Start: [Selected Mission]".
+## Implementation Steps
 
-### 3. Update routing to pass selected scenario
+### 1. Create streaming edge function `gemini-voice-stream`
+- New edge function at `supabase/functions/gemini-voice-stream/index.ts`
+- Uses SSE streaming via Lovable AI gateway (`stream: true`)
+- System prompt includes Johnny's persona + full scenario context + conversation history
+- Returns streamed tokens so the client can render them live
+- Handles 429/402 errors
 
-- Store selected scenario ID in localStorage or pass via route state to `/play`
-- Update `/play` route to `/play?scenario=3` or use navigation state
+### 2. Rewrite `useVoiceSession` hook for live conversation
+- Add `conversationHistory` state — array of `{role, content}` messages persisted across the session
+- New `streamResponse()` method that:
+  - Sends full conversation history + new user message to the streaming edge function
+  - Parses SSE tokens and updates `npcReply` progressively (token-by-token)
+  - Sets state to `speaking` once first token arrives
+  - Triggers TTS after full response is received
+- Remove the old `processWithGemini` one-shot call
+- Add `resetConversation()` to clear history between scenarios
 
-### 4. Update `src/hooks/useGameState.ts`
+### 3. Update `VoiceControls` for continuous conversation
+- Remove the `disabled` prop gating — voice controls are always active during `speak` phase
+- Add a "conversation mode" where the mic button re-enables after Johnny finishes speaking
+- Show conversation history as a mini chat log (last 2-3 exchanges)
+- Auto-start listening after Johnny finishes speaking (optional, with toggle)
 
-- Accept an optional `scenarioId` parameter
-- Filter `scenarios` to only play the selected scenario (instead of all 3 sequentially)
-- Game completes after the selected scenario's phases finish
+### 4. Update `NPCCompanion` for streaming text
+- Accept a `streamingText` prop that updates character-by-character as tokens arrive
+- Show typing indicator while waiting for first token
+- Smooth text appearance animation
 
-### 5. Update `src/pages/Play.tsx`
+### 5. Update `Play.tsx` game loop for multi-turn conversation
+- Remove the fixed `setTimeout(onSpeakComplete, 1500)` after one exchange
+- Instead, let the conversation continue until:
+  - The AI's response includes a signal that the user got the right answer (parsed from response)
+  - Or a maximum of 5 exchanges (then auto-advance to touch phase)
+- Pass conversation history to the edge function so Johnny remembers what was already discussed
+- The AI system prompt instructs Johnny to say "correct" signals when the user identifies the problem
 
-- Read selected scenario from route state/search params
-- Pass it to `useGameState`
+### 6. Update `gemini-voice` system prompt (in the new streaming function)
+- Add instruction: when the user correctly identifies the problem, include `[CORRECT]` marker in response
+- Add instruction: after 3+ wrong guesses, give increasingly direct hints
+- Include the scenario's wrong elements in context so the AI can evaluate answers
+- Keep the warm, encouraging Johnny persona
 
-### Files to change:
-- `src/data/scenarios.ts` — Add 2 scenarios + metadata fields
-- `src/pages/Index.tsx` — Scenario selection UI
-- `src/hooks/useGameState.ts` — Accept scenario filter
-- `src/pages/Play.tsx` — Read selected scenario
-- `src/App.tsx` — No changes needed
+### Files to create/modify:
+- **Create**: `supabase/functions/gemini-voice-stream/index.ts`
+- **Modify**: `src/hooks/useVoiceSession.ts` — streaming + conversation history
+- **Modify**: `src/components/game/VoiceControls.tsx` — continuous conversation UI
+- **Modify**: `src/components/game/NPCCompanion.tsx` — streaming text display
+- **Modify**: `src/pages/Play.tsx` — multi-turn game loop
+- **Modify**: `supabase/config.toml` — register new edge function
 
