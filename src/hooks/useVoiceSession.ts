@@ -8,7 +8,87 @@ export function useVoiceSession() {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [npcReply, setNpcReply] = useState<string | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // ElevenLabs TTS — natural female voice
+  const playNarration = useCallback(async (text: string) => {
+    setVoiceState("speaking");
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text }),
+        }
+      );
+
+      if (!response.ok) {
+        console.warn("ElevenLabs TTS failed, falling back to browser TTS");
+        fallbackTTS(text);
+        return;
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setVoiceState("idle");
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+      audio.onerror = () => {
+        setVoiceState("idle");
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+      await audio.play();
+    } catch (e) {
+      console.warn("ElevenLabs TTS error, falling back:", e);
+      fallbackTTS(text);
+    }
+  }, []);
+
+  // Browser TTS fallback
+  const fallbackTTS = useCallback((text: string) => {
+    if (!("speechSynthesis" in window)) {
+      setVoiceState("idle");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.1;
+    utterance.lang = "en-US";
+
+    // Try to pick a female voice
+    const voices = window.speechSynthesis.getVoices();
+    const femaleVoice = voices.find(
+      (v) => v.name.includes("Female") || v.name.includes("Samantha") || v.name.includes("Victoria") || v.name.includes("Karen")
+    );
+    if (femaleVoice) utterance.voice = femaleVoice;
+
+    utterance.onend = () => setVoiceState("idle");
+    utterance.onerror = () => setVoiceState("idle");
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const stopNarration = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    window.speechSynthesis?.cancel();
+    setVoiceState("idle");
+  }, []);
 
   const startListening = useCallback(() => {
     setVoiceState("listening");
@@ -49,7 +129,6 @@ export function useVoiceSession() {
       recognition.start();
       (window as any).__speechRecognition = recognition;
     } else {
-      // Fallback: mock after 2s
       setTimeout(() => {
         setTranscript("I see the problem!");
         setVoiceState("processing");
@@ -63,38 +142,6 @@ export function useVoiceSession() {
       recognition.stop();
     }
     setVoiceState("processing");
-  }, []);
-
-  // Text-to-Speech for NPC narration
-  const playNarration = useCallback((text: string) => {
-    if (!("speechSynthesis" in window)) return;
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-
-    setVoiceState("speaking");
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.lang = "en-US";
-
-    utterance.onend = () => {
-      setVoiceState("idle");
-      utteranceRef.current = null;
-    };
-    utterance.onerror = () => {
-      setVoiceState("idle");
-      utteranceRef.current = null;
-    };
-
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  const stopNarration = useCallback(() => {
-    window.speechSynthesis?.cancel();
-    utteranceRef.current = null;
-    setVoiceState("idle");
   }, []);
 
   const processWithGemini = useCallback(
