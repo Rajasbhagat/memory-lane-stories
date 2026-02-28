@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type { GameStats } from "@/hooks/useGameState";
 import { useProfile } from "@/hooks/useProfile";
+import { ANIMATION } from "@/config/accessibility.config";
 import confetti from "canvas-confetti";
 
 const ratingTitles: Record<number, string> = {
@@ -28,7 +29,6 @@ const Summary = () => {
   const stars = stats.hintsUsed === 0 ? 3 : stats.hintsUsed <= 3 ? 2 : 1;
   const ratingTitle = ratingTitles[stars];
 
-  // Save stats to profile once
   useEffect(() => {
     if (savedRef.current) return;
     savedRef.current = true;
@@ -40,30 +40,25 @@ const Summary = () => {
     });
   }, []);
 
-  // Fire confetti on mount
   useEffect(() => {
     const duration = 3000;
     const end = Date.now() + duration;
-
     const frame = () => {
       confetti({
         particleCount: 3,
         angle: 60,
         spread: 55,
         origin: { x: 0, y: 0.6 },
-        colors: ["#7fb896", "#e07850", "#f5c842"],
+        colors: ["#2563eb", "#f59e0b", "#10b981"],
       });
       confetti({
         particleCount: 3,
         angle: 120,
         spread: 55,
         origin: { x: 1, y: 0.6 },
-        colors: ["#7fb896", "#e07850", "#f5c842"],
+        colors: ["#2563eb", "#f59e0b", "#10b981"],
       });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
+      if (Date.now() < end) requestAnimationFrame(frame);
     };
     frame();
   }, []);
@@ -72,9 +67,10 @@ const Summary = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      transition={{ duration: ANIMATION.DURATION_NORMAL / 1000 }}
       className="flex min-h-screen items-center justify-center bg-background px-6"
     >
-      <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
+      <div className="flex w-full max-w-lg flex-col items-center gap-8 text-center">
         {/* Stars */}
         <motion.div
           initial={{ scale: 0 }}
@@ -86,12 +82,12 @@ const Summary = () => {
         </motion.div>
 
         <div>
-          <h1 className="text-heading-lg font-bold text-primary">Mission Complete!</h1>
+          <h1 className="text-primary">Mission Complete!</h1>
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-1 text-lg font-semibold text-accent"
+            className="mt-2 text-xl font-bold text-accent-foreground"
           >
             {ratingTitle}
           </motion.p>
@@ -99,26 +95,26 @@ const Summary = () => {
 
         {/* Stats Card */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="w-full rounded-2xl bg-card p-6 shadow-md"
+          transition={{ delay: 0.2, duration: ANIMATION.DURATION_NORMAL / 1000 }}
+          className="w-full rounded-3xl bg-card p-8 shadow-md border-2 border-border"
         >
-          <div className="grid grid-cols-2 gap-4 text-left">
+          <div className="grid grid-cols-2 gap-6 text-left">
             <div>
-              <p className="text-sm text-muted-foreground">Scenarios</p>
+              <p className="text-caption text-muted-foreground">Scenarios</p>
               <p className="text-heading font-bold text-foreground">{stats.scenariosCompleted}/3</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Mistakes Spotted</p>
+              <p className="text-caption text-muted-foreground">Mistakes Spotted</p>
               <p className="text-heading font-bold text-foreground">{stats.mistakesSpotted}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Hints Used</p>
+              <p className="text-caption text-muted-foreground">Hints Used</p>
               <p className="text-heading font-bold text-foreground">{stats.hintsUsed}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Rating</p>
+              <p className="text-caption text-muted-foreground">Rating</p>
               <p className="text-heading font-bold">{"⭐".repeat(stars)}</p>
             </div>
           </div>
@@ -128,10 +124,10 @@ const Summary = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="flex items-start gap-3 rounded-2xl bg-card p-4 shadow-md"
+          transition={{ delay: 0.4, duration: ANIMATION.DURATION_NORMAL / 1000 }}
+          className="flex items-start gap-4 rounded-3xl bg-card p-6 shadow-md border-2 border-border"
         >
-          <span className="text-3xl">🕵️</span>
+          <span className="text-4xl">🕵️</span>
           <p className="text-speech text-card-foreground">
             Great work today, Detective {playerName}! You've got sharp eyes. See you on the next mission!
           </p>
@@ -141,19 +137,22 @@ const Summary = () => {
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex w-full flex-col gap-3"
+          transition={{ delay: 0.5, duration: ANIMATION.DURATION_NORMAL / 1000 }}
+          className="flex w-full flex-col gap-4 pb-8"
         >
           <Button
             onClick={() => navigate("/play")}
-            className="h-14 w-full rounded-full bg-accent text-button font-semibold text-accent-foreground hover:bg-accent/90"
+            variant="accent"
+            size="lg"
+            className="w-full"
           >
             Play Again
           </Button>
           <Button
             onClick={() => navigate("/")}
             variant="ghost"
-            className="h-14 w-full rounded-full text-button text-muted-foreground"
+            size="lg"
+            className="w-full text-muted-foreground"
           >
             Done for Today
           </Button>

@@ -55,27 +55,28 @@ const VoiceControls = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center gap-4 rounded-2xl bg-card p-4 shadow-md"
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="flex flex-col items-center gap-5 rounded-3xl bg-card p-6 shadow-md border-2 border-border"
     >
       {/* Voice Error */}
       {voiceError && (
-        <div className="flex w-full items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div className="flex w-full items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-body text-destructive">
+          <AlertCircle className="h-6 w-6 shrink-0" />
           <span className="flex-1">{voiceError}</span>
           {onClearError && (
-            <button onClick={onClearError} className="shrink-0">
-              <X className="h-4 w-4" />
+            <button onClick={onClearError} className="shrink-0 min-h-touch min-w-touch flex items-center justify-center">
+              <X className="h-6 w-6" />
             </button>
           )}
         </div>
       )}
 
       {/* Status */}
-      <p className="text-sm text-muted-foreground">{stateLabels[state]}</p>
+      <p className="text-body text-muted-foreground">{stateLabels[state]}</p>
 
-      {/* Mic Button */}
+      {/* Mic Button — 96px for primary voice action */}
       <div className="relative">
         {state === "listening" && (
           <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse-ring" />
@@ -83,28 +84,28 @@ const VoiceControls = ({
         <Button
           onClick={handleMicClick}
           disabled={disabled || state === "processing" || state === "speaking"}
-          className={`h-16 w-16 rounded-full ${
+          className={`min-h-touch-xl min-w-touch-xl rounded-full ${
             state === "listening"
               ? "bg-destructive hover:bg-destructive/90"
               : "bg-primary hover:bg-primary/90"
           } text-primary-foreground`}
-          size="icon"
+          size="icon-lg"
         >
           {state === "listening" ? (
-            <MicOff className="h-7 w-7" />
+            <MicOff className="h-10 w-10" />
           ) : (
-            <Mic className="h-7 w-7" />
+            <Mic className="h-10 w-10" />
           )}
         </Button>
       </div>
 
-      {/* Waveform — visible during listening AND speaking */}
+      {/* Waveform */}
       {showWaveform && (
-        <div className="flex h-8 items-center gap-1">
+        <div className="flex h-10 items-center gap-1.5">
           {Array.from({ length: 12 }).map((_, i) => (
             <motion.div
               key={i}
-              className={`w-1 rounded-full ${state === "speaking" ? "bg-accent" : "bg-primary"}`}
+              className={`w-1.5 rounded-full ${state === "speaking" ? "bg-accent" : "bg-primary"}`}
               animate={{
                 height: [8, 20 + Math.random() * 12, 8],
               }}
@@ -120,26 +121,26 @@ const VoiceControls = ({
 
       {/* Transcript */}
       {transcript && (
-        <p className="text-center text-sm text-muted-foreground italic">"{transcript}"</p>
+        <p className="text-center text-body text-muted-foreground italic">"{transcript}"</p>
       )}
 
       {/* Text fallback */}
-      <div className="flex w-full gap-2">
+      <div className="flex w-full gap-3">
         <Input
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
           placeholder="Or type your answer here..."
-          className="h-12 flex-1 text-body"
+          className="flex-1"
           disabled={disabled}
         />
         <Button
           onClick={handleTextSubmit}
           disabled={disabled || !textInput.trim()}
-          className="h-12 w-12 rounded-full bg-primary text-primary-foreground"
+          className="min-h-touch min-w-touch rounded-full bg-primary text-primary-foreground"
           size="icon"
         >
-          <Send className="h-5 w-5" />
+          <Send className="h-6 w-6" />
         </Button>
       </div>
     </motion.div>
