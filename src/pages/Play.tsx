@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb } from "lucide-react";
 import { useGameState } from "@/hooks/useGameState";
@@ -14,8 +14,11 @@ import { Button } from "@/components/ui/button";
 const SKIP_SPEAK_TIMEOUT_MS = 15000;
 
 const Play = () => {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const scenarioIndex = (location.state as any)?.scenarioIndex as number | undefined;
   const playerName = localStorage.getItem("mindset-name")?.trim() || "Detective";
+
+  const navigate = useNavigate();
 
   const {
     state,
@@ -29,7 +32,7 @@ const Play = () => {
     useHint,
     dismissHint,
     getHintText,
-  } = useGameState();
+  } = useGameState(scenarioIndex);
 
   const {
     voiceState,
