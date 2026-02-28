@@ -56,7 +56,7 @@ Saved all 5 implementation guides to `docs/implementation/`.
 
 ---
 
-## Step 6: Progressive Hint System (Errorless Learning)
+## Step 6: Progressive Hint System (Errorless Learning) ✅ DONE
 - 3-tier hint system: subtle pivot → stronger self-correction → gentle direct guidance
 - Tier 1: small lightbulb icon, 3s delay after no response
 - Tier 2: larger lightbulb with glow, immediate after second miss
