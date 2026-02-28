@@ -1,0 +1,167 @@
+import { useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lightbulb } from "lucide-react";
+import { useGameState } from "@/hooks/useGameState";
+import { useVoiceSession } from "@/hooks/useVoiceSession";
+import NPCCompanion from "@/components/game/NPCCompanion";
+import VoiceControls from "@/components/game/VoiceControls";
+import SceneContainer from "@/components/game/SceneContainer";
+import HintOverlay from "@/components/game/HintOverlay";
+import CelebrationOverlay from "@/components/game/CelebrationOverlay";
+import { Button } from "@/components/ui/button";
+
+const Play = () => {
+  const navigate = useNavigate();
+  const {
+    state,
+    currentScenario,
+    currentPhase,
+    onStoryComplete,
+    onSpeakComplete,
+    onElementTap,
+    onCelebrationComplete,
+    onTransitionComplete,
+    useHint,
+    dismissHint,
+  } = useGameState();
+
+  const { voiceState, transcript, startListening, stopListening, submitText } = useVoiceSession();
+
+  // Auto-advance from story after delay
+  useEffect(() => {
+    if (state.phase === "story") {
+      const timer = setTimeout(onStoryComplete, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex]);
+
+  // Auto-advance from transition
+  useEffect(() => {
+    if (state.phase === "transition") {
+      const timer = setTimeout(onTransitionComplete, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.phase, onTransitionComplete]);
+
+  // Navigate to summary when complete
+  useEffect(() => {
+    if (state.isComplete) {
+      navigate("/summary", {
+        state: state.stats,
+      });
+    }
+  }, [state.isComplete, navigate, state.stats]);
+
+  const handleVoiceSubmit = useCallback(
+    (text: string) => {
+      submitText(text);
+      // After any voice/text input, move to touch phase
+      setTimeout(onSpeakComplete, 600);
+    },
+    [submitText, onSpeakComplete],
+  );
+
+  if (!currentScenario || !currentPhase) return null;
+
+  // Get first unfound wrong element's hint for the hint overlay
+  const nextHint =
+    currentPhase.elements.find((e) => e.isWrong && !state.foundElements.includes(e.id))?.hint ||
+    "Look more carefully...";
+
+  const npcMood =
+    state.phase === "celebrate"
+      ? "happy"
+      : state.phase === "story"
+        ? "thinking"
+        : "neutral";
+
+  const npcText =
+    state.phase === "story"
+      ? currentPhase.narrative
+      : state.phase === "speak"
+        ? currentPhase.prompt
+        : state.phase === "touch"
+          ? "Now show me — tap on what's wrong!"
+          : state.phase === "celebrate"
+            ? currentPhase.successMessage
+            : state.phase === "transition"
+              ? "On to the next challenge..."
+              : currentPhase.prompt;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex min-h-screen flex-col bg-background"
+    >
+      {/* Header */}
+      <div className="px-4 pt-4 pb-2">
+        <p className="text-xs text-muted-foreground text-center">
+          {currentScenario.title} — Phase {state.currentPhaseIndex + 1}/{currentScenario.phases.length}
+        </p>
+      </div>
+
+      {/* Zone A — NPC */}
+      <div className="px-4 pt-2">
+        <NPCCompanion text={npcText} isTyping={state.phase === "story"} mood={npcMood} />
+      </div>
+
+      {/* Zone B — Scene */}
+      <div className="flex-1 px-4 py-3">
+        <AnimatePresence mode="wait">
+          <SceneContainer
+            key={`${state.currentScenarioIndex}-${state.currentPhaseIndex}`}
+            setting={currentScenario.setting}
+            elements={currentPhase.elements}
+            onElementTap={onElementTap}
+            highlightedElement={state.highlightedElement}
+            incorrectElements={state.incorrectElements}
+            foundElements={state.foundElements}
+            interactive={state.phase === "touch"}
+          />
+        </AnimatePresence>
+      </div>
+
+      {/* Hint button */}
+      {state.phase === "touch" && (
+        <div className="flex justify-center pb-2">
+          <Button
+            variant="ghost"
+            onClick={useHint}
+            className="gap-2 text-muted-foreground"
+          >
+            <Lightbulb className="h-4 w-4" />
+            Need a hint?
+          </Button>
+        </div>
+      )}
+
+      {/* Zone C — Voice Controls */}
+      <div className="px-4 pb-4">
+        <VoiceControls
+          state={voiceState}
+          transcript={transcript}
+          onStartListening={startListening}
+          onStopListening={stopListening}
+          onTextSubmit={handleVoiceSubmit}
+          disabled={state.phase !== "speak"}
+        />
+      </div>
+
+      {/* Overlays */}
+      <HintOverlay
+        isVisible={state.phase === "hint"}
+        hintText={nextHint}
+        onDismiss={dismissHint}
+      />
+      <CelebrationOverlay
+        isVisible={state.phase === "celebrate"}
+        message={currentPhase.successMessage}
+        onComplete={onCelebrationComplete}
+      />
+    </motion.div>
+  );
+};
+
+export default Play;

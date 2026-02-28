@@ -13,6 +13,17 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Atkinson Hyperlegible"', 'sans-serif'],
+      },
+      fontSize: {
+        'body': ['22px', { lineHeight: '1.6' }],
+        'heading-sm': ['28px', { lineHeight: '1.3' }],
+        'heading': ['32px', { lineHeight: '1.3' }],
+        'heading-lg': ['36px', { lineHeight: '1.3' }],
+        'speech': ['24px', { lineHeight: '1.5' }],
+        'button': ['20px', { lineHeight: '1.4' }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -62,28 +73,33 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        full: "999px",
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(1)", opacity: "0.8" },
+          "50%": { transform: "scale(1.15)", opacity: "0.4" },
+          "100%": { transform: "scale(1)", opacity: "0.8" },
+        },
+        "shake": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "25%": { transform: "translateX(-4px)" },
+          "75%": { transform: "translateX(4px)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-ring": "pulse-ring 1.5s ease-in-out infinite",
+        "shake": "shake 0.15s ease-in-out",
       },
     },
   },
