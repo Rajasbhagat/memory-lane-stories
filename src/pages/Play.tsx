@@ -11,7 +11,7 @@ import HintOverlay from "@/components/game/HintOverlay";
 import CelebrationOverlay from "@/components/game/CelebrationOverlay";
 import { Button } from "@/components/ui/button";
 
-const SKIP_SPEAK_TIMEOUT_MS = 15000;
+const MAX_EXCHANGES = 5;
 
 const Play = () => {
   const location = useLocation();
@@ -39,27 +39,32 @@ const Play = () => {
     transcript,
     npcReply,
     voiceError,
+    conversationHistory,
+    isCorrect,
     startListening,
     stopListening,
     submitText,
-    processWithGemini,
+    streamResponse,
     playNarration,
     clearError,
+    resetConversation,
   } = useVoiceSession();
 
   const scenarioContext = currentPhase
     ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
     : "";
 
+  // Count user messages in conversation
+  const userExchanges = conversationHistory.filter(m => m.role === "user").length;
+
   const handleVoiceSubmit = useCallback(
     (text: string) => {
       submitText(text, scenarioContext);
-      setTimeout(onSpeakComplete, 1500);
     },
-    [submitText, onSpeakComplete, scenarioContext],
+    [submitText, scenarioContext],
   );
 
-  // Auto-advance from story — longer delay for longer narratives
+  // Auto-advance from story
   useEffect(() => {
     if (state.phase === "story" && currentPhase) {
       console.log("[Play] Story phase — calling playNarration");
@@ -70,13 +75,33 @@ const Play = () => {
     }
   }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex, playNarration]);
 
-  // Skip-speak timeout: auto-advance to touch after 15s
+  // When AI says [CORRECT], advance to touch phase
   useEffect(() => {
-    if (state.phase === "speak") {
-      const timer = setTimeout(onSpeakComplete, SKIP_SPEAK_TIMEOUT_MS);
+    if (isCorrect && state.phase === "speak") {
+      const timer = setTimeout(onSpeakComplete, 2000);
       return () => clearTimeout(timer);
     }
-  }, [state.phase, onSpeakComplete]);
+  }, [isCorrect, state.phase, onSpeakComplete]);
+
+  // Max exchanges reached — auto-advance to touch
+  useEffect(() => {
+    if (state.phase === "speak" && userExchanges >= MAX_EXCHANGES && !isCorrect) {
+      const timer = setTimeout(onSpeakComplete, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [userExchanges, state.phase, isCorrect, onSpeakComplete]);
+
+  // When transcript arrives from speech recognition, send to AI
+  useEffect(() => {
+    if (transcript && voiceState === "processing" && state.phase === "speak") {
+      streamResponse(transcript, scenarioContext);
+    }
+  }, [transcript, voiceState]);
+
+  // Reset conversation when scenario/phase changes
+  useEffect(() => {
+    resetConversation();
+  }, [state.currentScenarioIndex, state.currentPhaseIndex, resetConversation]);
 
   // Auto-advance from transition
   useEffect(() => {
@@ -92,20 +117,6 @@ const Play = () => {
       navigate("/summary", { state: state.stats });
     }
   }, [state.isComplete, navigate, state.stats]);
-
-  // When transcript arrives from speech recognition, send to AI
-  useEffect(() => {
-    if (transcript && voiceState === "processing" && state.phase === "speak") {
-      processWithGemini(transcript, scenarioContext);
-    }
-  }, [transcript, voiceState]);
-
-  // When AI replies, advance to touch phase
-  useEffect(() => {
-    if (npcReply && state.phase === "speak") {
-      setTimeout(onSpeakComplete, 1500);
-    }
-  }, [npcReply]);
 
   // Early return AFTER all hooks
   if (!currentScenario || !currentPhase) return null;
@@ -133,6 +144,9 @@ const Play = () => {
               ? "On to the next challenge..."
               : currentPhase.prompt;
 
+  // Voice controls active during speak phase and when idle (after Johnny finishes speaking)
+  const voiceDisabled = state.phase !== "speak" || voiceState === "processing" || voiceState === "speaking";
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -146,8 +160,35 @@ const Play = () => {
       </div>
 
       <div className="px-4 pt-2">
-        <NPCCompanion text={npcText} isTyping={state.phase === "story"} mood={npcMood} />
+        <NPCCompanion
+          text={npcText}
+          isTyping={voiceState === "processing"}
+          mood={npcMood}
+        />
       </div>
+
+      {/* Conversation history mini-log */}
+      {state.phase === "speak" && conversationHistory.length > 0 && (
+        <div className="px-4 pt-2 max-h-32 overflow-y-auto">
+          <div className="flex flex-col gap-1">
+            {conversationHistory.slice(-4).map((msg, i) => (
+              <div
+                key={i}
+                className={`text-xs rounded-lg px-3 py-1.5 ${
+                  msg.role === "user"
+                    ? "bg-primary/10 text-primary self-end ml-8"
+                    : "bg-muted text-muted-foreground self-start mr-8"
+                }`}
+              >
+                <span className="font-semibold">
+                  {msg.role === "user" ? "You" : "Johnny"}:
+                </span>{" "}
+                {msg.content}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-4 py-3">
         <AnimatePresence mode="wait">
@@ -180,7 +221,7 @@ const Play = () => {
           onStartListening={startListening}
           onStopListening={stopListening}
           onTextSubmit={handleVoiceSubmit}
-          disabled={state.phase !== "speak"}
+          disabled={voiceDisabled}
           voiceError={voiceError}
           onClearError={clearError}
         />
