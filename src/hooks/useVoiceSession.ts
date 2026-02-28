@@ -43,9 +43,11 @@ export function useVoiceSession() {
   // Gemini TTS — warm Sulafat voice
   const playNarration = useCallback(async (text: string) => {
     setVoiceState("speaking");
-    console.log("[TTS] playNarration called, text length:", text.length);
-    console.log("[TTS] URL:", `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`);
 
+    // Start browser TTS immediately for zero-latency playback
+    fallbackTTS(text);
+
+    // Fetch Gemini audio in background — if it arrives, swap to it
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
@@ -60,20 +62,14 @@ export function useVoiceSession() {
         }
       );
 
-      if (!response.ok) {
-        console.warn("Gemini TTS failed, falling back to browser TTS");
-        fallbackTTS(text);
-        return;
-      }
+      if (!response.ok) return;
 
       const data = await response.json();
-      if (!data.audioContent) {
-        console.warn("No audio content, falling back to browser TTS");
-        fallbackTTS(text);
-        return;
-      }
+      if (!data.audioContent) return;
 
-      // Gemini returns raw PCM (Linear16, 24kHz, mono) — convert to WAV for playback
+      // Stop browser TTS and play Gemini audio instead
+      window.speechSynthesis?.cancel();
+
       const pcmBytes = Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0));
       const wavBuffer = pcmToWav(pcmBytes, 24000, 1, 16);
       const audioBlob = new Blob([wavBuffer], { type: "audio/wav" });
@@ -94,8 +90,8 @@ export function useVoiceSession() {
 
       await audio.play();
     } catch (e) {
-      console.warn("TTS error, falling back:", e);
-      fallbackTTS(text);
+      // Browser TTS already playing, so just log
+      console.warn("Gemini TTS background fetch failed:", e);
     }
   }, []);
 
