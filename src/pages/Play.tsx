@@ -33,6 +33,7 @@ const Play = () => {
     useHint,
     dismissHint,
     getHintText,
+    getHintTier,
   } = useGameState(scenarioIndex);
 
   const {
@@ -217,6 +218,7 @@ const Play = () => {
       <HintOverlay
         isVisible={state.phase === "hint"}
         hintText={hintText}
+        hintTier={getHintTier()}
         onDismiss={dismissHint}
       />
       <CelebrationOverlay

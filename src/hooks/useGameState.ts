@@ -18,7 +18,10 @@ export interface GameState {
   incorrectElements: string[];
   foundElements: string[];
   isComplete: boolean;
-  wrongAttempts: number; // track wrong taps for hint escalation
+  wrongAttempts: number;
+  hintTier: 0 | 1 | 2 | 3; // 0=no hint yet, 1=subtle, 2=stronger, 3=direct
+  consecutiveSuccesses: number;
+  consecutiveHints: number;
 }
 
 const initialStats: GameStats = {
@@ -28,7 +31,6 @@ const initialStats: GameStats = {
 };
 
 export function useGameState(scenarioIndex?: number) {
-  // Filter to single scenario if specified
   const activeScenarios = scenarioIndex !== undefined
     ? [scenarios[scenarioIndex]].filter(Boolean)
     : scenarios;
@@ -43,6 +45,9 @@ export function useGameState(scenarioIndex?: number) {
     foundElements: [],
     isComplete: false,
     wrongAttempts: 0,
+    hintTier: 0,
+    consecutiveSuccesses: 0,
+    consecutiveHints: 0,
   });
 
   const currentScenario: Scenario | undefined = activeScenarios[state.currentScenarioIndex];
@@ -69,11 +74,14 @@ export function useGameState(scenarioIndex?: number) {
       if (state.foundElements.includes(elementId)) return;
 
       if (element.isWrong) {
+        // Correct tap — track success
         setState((s) => ({
           ...s,
           foundElements: [...s.foundElements, elementId],
           highlightedElement: elementId,
           stats: { ...s.stats, mistakesSpotted: s.stats.mistakesSpotted + 1 },
+          consecutiveSuccesses: s.consecutiveSuccesses + 1,
+          consecutiveHints: 0,
         }));
 
         const wrongElements = currentPhase.elements.filter((e) => e.isWrong);
@@ -86,23 +94,29 @@ export function useGameState(scenarioIndex?: number) {
           }, 800);
         }
       } else {
-        // Wrong tap — increment wrongAttempts for hint escalation
+        // Incorrect tap — escalate hint tier, never punish
+        const nextTier = Math.min(state.hintTier + 1, 3) as 0 | 1 | 2 | 3;
         setState((s) => ({
           ...s,
           incorrectElements: [...s.incorrectElements, elementId],
           wrongAttempts: s.wrongAttempts + 1,
+          hintTier: nextTier,
+          consecutiveSuccesses: 0,
+          consecutiveHints: s.consecutiveHints + 1,
         }));
 
-        // On 3+ wrong attempts, auto-highlight the correct element
-        if (state.wrongAttempts + 1 >= 3) {
+        // Tier 3: auto-highlight the correct element after a moment
+        if (nextTier >= 3) {
           const correctWrong = currentPhase.elements.find(
             (e) => e.isWrong && !state.foundElements.includes(e.id)
           );
           if (correctWrong) {
-            setState((s) => ({
-              ...s,
-              highlightedElement: correctWrong.id,
-            }));
+            setTimeout(() => {
+              setState((s) => ({
+                ...s,
+                highlightedElement: correctWrong.id,
+              }));
+            }, 500);
           }
         }
 
@@ -114,7 +128,7 @@ export function useGameState(scenarioIndex?: number) {
         }, 600);
       }
     },
-    [currentPhase, state.foundElements, state.wrongAttempts],
+    [currentPhase, state.foundElements, state.wrongAttempts, state.hintTier],
   );
 
   const onCelebrationComplete = useCallback(() => {
@@ -131,6 +145,7 @@ export function useGameState(scenarioIndex?: number) {
           incorrectElements: [],
           foundElements: [],
           wrongAttempts: 0,
+          hintTier: 0,
         };
       }
 
@@ -145,6 +160,7 @@ export function useGameState(scenarioIndex?: number) {
           incorrectElements: [],
           foundElements: [],
           wrongAttempts: 0,
+          hintTier: 0,
           stats: { ...s.stats, scenariosCompleted: s.stats.scenariosCompleted + 1 },
         };
       }
@@ -161,26 +177,49 @@ export function useGameState(scenarioIndex?: number) {
     setState((s) => ({ ...s, phase: "story" }));
   }, []);
 
-  // Hint escalation: returns the appropriate hint text based on wrongAttempts
+  // Tier-based hint text using errorless learning language
   const getHintText = useCallback((): string => {
-    if (!currentPhase) return "Look more carefully...";
+    if (!currentPhase) return "Take another look around...";
     const { hints } = currentPhase;
-    if (state.wrongAttempts <= 1) return hints.attempt1;
-    if (state.wrongAttempts === 2) return hints.attempt2;
+    const tier = state.hintTier;
+    if (tier <= 1) return hints.attempt1;
+    if (tier === 2) return hints.attempt2;
     return hints.attempt3;
-  }, [currentPhase, state.wrongAttempts]);
+  }, [currentPhase, state.hintTier]);
+
+  const getHintTier = useCallback((): 0 | 1 | 2 | 3 => {
+    return state.hintTier;
+  }, [state.hintTier]);
 
   const useHint = useCallback(() => {
+    const nextTier = Math.min(state.hintTier + 1, 3) as 0 | 1 | 2 | 3;
     setState((s) => ({
       ...s,
       phase: "hint",
+      hintTier: nextTier,
       stats: { ...s.stats, hintsUsed: s.stats.hintsUsed + 1 },
+      consecutiveHints: s.consecutiveHints + 1,
+      consecutiveSuccesses: 0,
     }));
-  }, []);
+  }, [state.hintTier]);
 
   const dismissHint = useCallback(() => {
+    // Tier 3: auto-advance after dismissing — highlight the answer
+    if (state.hintTier >= 3 && currentPhase) {
+      const correctWrong = currentPhase.elements.find(
+        (e) => e.isWrong && !state.foundElements.includes(e.id)
+      );
+      if (correctWrong) {
+        setState((s) => ({
+          ...s,
+          phase: "touch",
+          highlightedElement: correctWrong.id,
+        }));
+        return;
+      }
+    }
     setState((s) => ({ ...s, phase: "touch" }));
-  }, []);
+  }, [state.hintTier, currentPhase, state.foundElements]);
 
   const resetGame = useCallback(() => {
     setState({
@@ -193,6 +232,9 @@ export function useGameState(scenarioIndex?: number) {
       foundElements: [],
       isComplete: false,
       wrongAttempts: 0,
+      hintTier: 0,
+      consecutiveSuccesses: 0,
+      consecutiveHints: 0,
     });
   }, []);
 
@@ -210,5 +252,6 @@ export function useGameState(scenarioIndex?: number) {
     dismissHint,
     resetGame,
     getHintText,
+    getHintTier,
   };
 }
