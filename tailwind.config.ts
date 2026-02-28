@@ -17,12 +17,22 @@ export default {
         sans: ['"Atkinson Hyperlegible"', 'sans-serif'],
       },
       fontSize: {
-        'body': ['22px', { lineHeight: '1.6' }],
-        'heading-sm': ['28px', { lineHeight: '1.3' }],
-        'heading': ['32px', { lineHeight: '1.3' }],
+        /* Accessibility-first type scale — 18px minimum */
+        'sm': ['18px', { lineHeight: '1.6' }],
+        'base': ['20px', { lineHeight: '1.75' }],
+        'lg': ['22px', { lineHeight: '1.6' }],
+        'xl': ['24px', { lineHeight: '1.5' }],
+        '2xl': ['28px', { lineHeight: '1.3' }],
+        '3xl': ['32px', { lineHeight: '1.3' }],
+        '4xl': ['36px', { lineHeight: '1.3' }],
+        /* Semantic aliases */
+        'body': ['20px', { lineHeight: '1.75' }],
+        'heading-sm': ['24px', { lineHeight: '1.3' }],
+        'heading': ['28px', { lineHeight: '1.3' }],
         'heading-lg': ['36px', { lineHeight: '1.3' }],
-        'speech': ['24px', { lineHeight: '1.5' }],
+        'speech': ['22px', { lineHeight: '1.6' }],
         'button': ['20px', { lineHeight: '1.4' }],
+        'caption': ['18px', { lineHeight: '1.5' }],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -50,6 +60,10 @@ export default {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -71,9 +85,22 @@ export default {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
         full: "999px",
+      },
+      spacing: {
+        '18': '4.5rem',
+      },
+      minHeight: {
+        'touch': '60px',
+        'touch-lg': '72px',
+        'touch-xl': '96px',
+      },
+      minWidth: {
+        'touch': '60px',
+        'touch-lg': '72px',
+        'touch-xl': '96px',
       },
       keyframes: {
         "accordion-down": {
@@ -98,8 +125,8 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "pulse-ring": "pulse-ring 1.5s ease-in-out infinite",
-        "shake": "shake 0.15s ease-in-out",
+        "pulse-ring": "pulse-ring 1.5s ease-out infinite",
+        "shake": "shake 0.15s ease-out",
       },
     },
   },

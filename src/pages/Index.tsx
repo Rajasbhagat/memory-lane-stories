@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useProfile } from "@/hooks/useProfile";
 import { scenarios } from "@/data/scenarios";
+import { ANIMATION } from "@/config/accessibility.config";
 
 function getDetectiveRank(sessions: number) {
   if (sessions >= 8) return { title: "Senior Detective", emoji: "🕵️‍♂️" };
@@ -18,18 +19,18 @@ function getDetectiveRank(sessions: number) {
 }
 
 function getDifficultyLabel(d: 1 | 2 | 3) {
-  if (d === 1) return { label: "Easy", className: "bg-primary/15 text-primary border-primary/30" };
-  if (d === 2) return { label: "Medium", className: "bg-accent/15 text-accent border-accent/30" };
+  if (d === 1) return { label: "Easy", className: "bg-success/15 text-success border-success/30" };
+  if (d === 2) return { label: "Medium", className: "bg-accent/15 text-accent-foreground border-accent/30" };
   return { label: "Hard", className: "bg-destructive/15 text-destructive border-destructive/30" };
 }
 
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
+  show: { transition: { staggerChildren: 0.1 } },
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+  show: { opacity: 1, y: 0, transition: { duration: ANIMATION.DURATION_NORMAL / 1000, ease: ANIMATION.EASING } },
 };
 
 const Index = () => {
@@ -65,7 +66,7 @@ const Index = () => {
 
   const stats = [
     { label: "Sessions", value: sessions, icon: Calendar, color: "text-primary" },
-    { label: "Mistakes Found", value: profile?.total_mistakes_spotted ?? 0, icon: Eye, color: "text-accent" },
+    { label: "Mistakes Found", value: profile?.total_mistakes_spotted ?? 0, icon: Eye, color: "text-accent-foreground" },
     { label: "Hints Used", value: profile?.total_hints_used ?? 0, icon: Lightbulb, color: "text-muted-foreground" },
     {
       label: "Best Rating",
@@ -81,15 +82,15 @@ const Index = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: ANIMATION.DURATION_NORMAL / 1000 }}
       className="flex min-h-screen items-start justify-center bg-background px-6 py-10 overflow-y-auto"
     >
       <motion.div
         variants={stagger}
         initial="hidden"
         animate="show"
-        className="flex w-full max-w-md flex-col items-center gap-6 text-center"
+        className="flex w-full max-w-lg flex-col items-center gap-8 text-center"
       >
         {/* Hero */}
         <motion.div variants={fadeUp} className="flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
@@ -97,13 +98,13 @@ const Index = () => {
         </motion.div>
 
         <motion.div variants={fadeUp}>
-          <h1 className="text-heading-lg font-bold text-foreground">{greeting}</h1>
-          <p className="mt-1 text-body text-muted-foreground">Help Detective Johnny spot the mistakes</p>
+          <h1 className="text-foreground">{greeting}</h1>
+          <p className="mt-2 text-body text-muted-foreground">Help Detective Johnny spot the mistakes</p>
         </motion.div>
 
         {/* Name Input */}
         <motion.div variants={fadeUp} className="w-full">
-          <label htmlFor="name-input" className="mb-2 block text-left text-body text-muted-foreground">
+          <label htmlFor="name-input" className="mb-3 block text-left text-body text-muted-foreground">
             What should I call you?
           </label>
           <Input
@@ -111,7 +112,7 @@ const Index = () => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter your name"
-            className="h-14 text-body"
+            className="min-h-touch-lg"
             onKeyDown={(e) => e.key === "Enter" && handleStart()}
           />
         </motion.div>
@@ -119,29 +120,29 @@ const Index = () => {
         {/* Profile Card */}
         {!loading && profile && (
           <motion.div variants={fadeUp} className="w-full">
-            <Card className="border-primary/20">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{rank.emoji}</span>
+            <Card className="border-2 border-primary/20 rounded-3xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <span className="text-4xl">{rank.emoji}</span>
                     <div className="text-left">
-                      <p className="text-lg font-semibold text-foreground">
+                      <p className="text-lg font-bold text-foreground">
                         {profile.display_name || "Detective"}
                       </p>
-                      <p className="text-sm text-muted-foreground">{rank.title}</p>
+                      <p className="text-caption text-muted-foreground">{rank.title}</p>
                     </div>
                   </div>
                   {sessions === 0 && (
-                    <Badge variant="secondary" className="text-xs">New</Badge>
+                    <Badge variant="secondary" className="text-caption px-3 py-1">New</Badge>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-2 gap-4 mb-6">
                   {stats.map((s) => (
-                    <div key={s.label} className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3">
-                      <s.icon className={`h-5 w-5 shrink-0 ${s.color}`} />
+                    <div key={s.label} className="flex items-center gap-3 rounded-2xl bg-secondary/50 p-4">
+                      <s.icon className={`h-6 w-6 shrink-0 ${s.color}`} />
                       <div className="text-left">
-                        <p className="text-xs text-muted-foreground leading-tight">{s.label}</p>
+                        <p className="text-caption text-muted-foreground leading-tight">{s.label}</p>
                         <p className="text-lg font-bold text-foreground leading-tight">{s.value}</p>
                       </div>
                     </div>
@@ -149,13 +150,13 @@ const Index = () => {
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <div className="flex justify-between text-caption text-muted-foreground mb-2">
                     <span className="flex items-center gap-1">
-                      <Shield className="h-3.5 w-3.5" /> Level Progress
+                      <Shield className="h-5 w-5" /> Level Progress
                     </span>
                     <span>{progressValue}%</span>
                   </div>
-                  <Progress value={progressValue} className="h-2" />
+                  <Progress value={progressValue} className="h-3" />
                 </div>
               </CardContent>
             </Card>
@@ -164,8 +165,8 @@ const Index = () => {
 
         {/* Choose Your Mission */}
         <motion.div variants={fadeUp} className="w-full">
-          <h2 className="text-lg font-bold text-foreground text-left mb-3">Choose Your Mission</h2>
-          <div className="flex flex-col gap-3">
+          <h2 className="text-foreground text-left mb-4">Choose Your Mission</h2>
+          <div className="flex flex-col gap-4">
             {scenarios.map((scenario, index) => {
               const diff = getDifficultyLabel(scenario.difficulty);
               const isSelected = selectedScenario === index;
@@ -174,28 +175,28 @@ const Index = () => {
                   key={scenario.id}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setSelectedScenario(index)}
-                  className={`w-full text-left rounded-2xl border-2 p-4 transition-colors ${
+                  className={`w-full text-left rounded-3xl border-2 p-5 transition-all duration-200 ease-out min-h-touch-lg ${
                     isSelected
                       ? "border-primary bg-primary/5"
                       : "border-border bg-card hover:border-primary/40"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="text-3xl leading-none mt-0.5">{scenario.icon}</span>
+                  <div className="flex items-start gap-4">
+                    <span className="text-4xl leading-none mt-0.5">{scenario.icon}</span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-foreground text-base">{scenario.title}</p>
-                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${diff.className}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="font-bold text-foreground text-lg">{scenario.title}</p>
+                        <Badge variant="outline" className={`text-caption px-2 py-0.5 ${diff.className}`}>
                           {diff.label}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-snug">{scenario.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-body text-muted-foreground leading-snug">{scenario.description}</p>
+                      <p className="text-caption text-muted-foreground mt-2">
                         {scenario.phases.length} {scenario.phases.length === 1 ? "phase" : "phases"}
                       </p>
                     </div>
                     {isSelected && (
-                      <span className="text-primary text-lg">✓</span>
+                      <span className="text-primary text-2xl font-bold">✓</span>
                     )}
                   </div>
                 </motion.button>
@@ -205,10 +206,12 @@ const Index = () => {
         </motion.div>
 
         {/* CTA */}
-        <motion.div variants={fadeUp} className="w-full pt-2 pb-6">
+        <motion.div variants={fadeUp} className="w-full pt-4 pb-8">
           <Button
             onClick={handleStart}
-            className="h-14 w-full rounded-full bg-accent text-button font-semibold text-accent-foreground hover:bg-accent/90 transition-transform active:scale-95"
+            variant="accent"
+            size="lg"
+            className="w-full"
           >
             Start: {selected?.title ?? "Mission"}
           </Button>

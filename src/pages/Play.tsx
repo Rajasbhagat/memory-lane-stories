@@ -56,7 +56,6 @@ const Play = () => {
     ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
     : "";
 
-  // Count user messages in conversation
   const userExchanges = conversationHistory.filter(m => m.role === "user").length;
 
   const handleVoiceSubmit = useCallback(
@@ -69,7 +68,6 @@ const Play = () => {
   // Auto-advance from story
   useEffect(() => {
     if (state.phase === "story" && currentPhase) {
-      console.log("[Play] Story phase — calling playNarration");
       playNarration(currentPhase.narrative);
       const readTime = Math.max(5000, currentPhase.narrative.length * 60);
       const timer = setTimeout(onStoryComplete, readTime);
@@ -121,7 +119,6 @@ const Play = () => {
     }
   }, [state.isComplete, navigate, state.stats]);
 
-  // Early return AFTER all hooks
   if (!currentScenario || !currentPhase) return null;
 
   const personalizedSuccess = currentPhase.successMessage.replace("{name}", playerName);
@@ -147,7 +144,6 @@ const Play = () => {
               ? "On to the next challenge..."
               : currentPhase.prompt;
 
-  // Voice controls active during speak phase and when idle (after Johnny finishes speaking)
   const voiceDisabled = state.phase !== "speak" || voiceState === "processing" || voiceState === "speaking";
 
   return (
@@ -156,13 +152,13 @@ const Play = () => {
       animate={{ opacity: 1 }}
       className="flex min-h-screen flex-col bg-background"
     >
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-xs text-muted-foreground text-center">
+      <div className="px-6 pt-5 pb-2">
+        <p className="text-caption text-muted-foreground text-center">
           {currentScenario.title} — Phase {state.currentPhaseIndex + 1}/{currentScenario.phases.length}
         </p>
       </div>
 
-      <div className="px-4 pt-2">
+      <div className="px-6 pt-3">
         <NPCCompanion
           text={npcText}
           isTyping={voiceState === "processing"}
@@ -172,18 +168,18 @@ const Play = () => {
 
       {/* Conversation history mini-log */}
       {state.phase === "speak" && conversationHistory.length > 0 && (
-        <div className="px-4 pt-2 max-h-32 overflow-y-auto">
-          <div className="flex flex-col gap-1">
+        <div className="px-6 pt-3 max-h-40 overflow-y-auto">
+          <div className="flex flex-col gap-2">
             {conversationHistory.slice(-4).map((msg, i) => (
               <div
                 key={i}
-                className={`text-xs rounded-lg px-3 py-1.5 ${
+                className={`text-caption rounded-2xl px-4 py-2 ${
                   msg.role === "user"
                     ? "bg-primary/10 text-primary self-end ml-8"
                     : "bg-muted text-muted-foreground self-start mr-8"
                 }`}
               >
-                <span className="font-semibold">
+                <span className="font-bold">
                   {msg.role === "user" ? "You" : "Johnny"}:
                 </span>{" "}
                 {msg.content}
@@ -193,7 +189,7 @@ const Play = () => {
         </div>
       )}
 
-      <div className="flex-1 px-4 py-3">
+      <div className="flex-1 px-6 py-4">
         <AnimatePresence mode="wait">
           <SceneContainer
             key={`${state.currentScenarioIndex}-${state.currentPhaseIndex}`}
@@ -209,15 +205,15 @@ const Play = () => {
       </div>
 
       {state.phase === "touch" && (
-        <div className="flex justify-center pb-2">
-          <Button variant="ghost" onClick={useHint} className="gap-2 text-muted-foreground">
-            <Lightbulb className="h-4 w-4" />
+        <div className="flex justify-center pb-3">
+          <Button variant="ghost" onClick={useHint} className="gap-2 text-muted-foreground min-h-touch">
+            <Lightbulb className="h-6 w-6" />
             Need a hint? {state.wrongAttempts > 0 && `(${state.wrongAttempts} wrong)`}
           </Button>
         </div>
       )}
 
-      <div className="px-4 pb-4">
+      <div className="px-6 pb-6">
         <VoiceControls
           state={voiceState}
           transcript={transcript}
