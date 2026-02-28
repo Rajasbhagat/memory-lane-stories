@@ -31,18 +31,18 @@ const SceneContainer = ({
 }: SceneContainerProps) => {
   const getElementStyle = (el: ScenarioElement) => {
     if (foundElements.includes(el.id)) {
-      return "border-primary bg-primary/10 ring-2 ring-primary";
+      return "border-primary bg-primary/30 ring-2 ring-primary shadow-lg shadow-primary/20";
     }
     if (incorrectElements.includes(el.id)) {
-      return "border-destructive bg-destructive/10 animate-shake";
+      return "border-destructive bg-destructive/30 animate-shake shadow-lg shadow-destructive/20";
     }
     if (highlightedElement === el.id) {
-      return "border-primary bg-primary/20 ring-2 ring-primary animate-pulse";
+      return "border-primary bg-primary/30 ring-2 ring-primary animate-pulse shadow-lg shadow-primary/30";
     }
     if (interactive) {
-      return "border-border bg-card/90 hover:border-primary/50 hover:bg-primary/5 cursor-pointer backdrop-blur-sm";
+      return "border-white/40 bg-black/30 hover:border-primary hover:bg-primary/20 cursor-pointer hover:shadow-lg hover:shadow-primary/20";
     }
-    return "border-border bg-card/80 opacity-60 backdrop-blur-sm";
+    return "border-white/20 bg-black/20 opacity-60";
   };
 
   const bgImage = sceneImages[setting];
@@ -51,42 +51,47 @@ const SceneContainer = ({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 overflow-auto rounded-2xl"
+      className="flex-1 overflow-auto"
     >
-      {/* Scene illustration */}
-      {bgImage && (
-        <div className="relative mb-3 overflow-hidden rounded-2xl">
-          <img
-            src={bgImage}
-            alt={`Scene: ${setting}`}
-            className="w-full h-40 object-cover rounded-2xl"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent rounded-2xl" />
-        </div>
-      )}
+      {/* Scene with overlaid elements */}
+      <div
+        className="relative w-full rounded-2xl overflow-hidden"
+        style={{
+          backgroundImage: bgImage ? `url(${bgImage})` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          minHeight: "360px",
+        }}
+      >
+        {/* Dim overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40 rounded-2xl" />
 
-      <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3">
-        {elements.map((el) => (
-          <motion.button
-            key={el.id}
-            onClick={() => interactive && onElementTap(el.id)}
-            disabled={!interactive || foundElements.includes(el.id)}
-            whileHover={interactive ? { scale: 1.03 } : undefined}
-            whileTap={interactive ? { scale: 0.97 } : undefined}
-            className={`flex min-h-[80px] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-colors ${getElementStyle(el)}`}
-          >
-            <span className="text-2xl">
-              {getIcon(el.id)}
-            </span>
-            <span className="text-sm font-semibold text-card-foreground">{el.label}</span>
-            {el.detail && (
-              <span className="text-xs text-muted-foreground">{el.detail}</span>
-            )}
-            {foundElements.includes(el.id) && (
-              <span className="text-xs text-primary font-medium">✓ Found</span>
-            )}
-          </motion.button>
-        ))}
+        {/* Interactive elements grid overlaid on scene */}
+        <div className="relative z-10 grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-3" style={{ minHeight: "360px" }}>
+          {elements.map((el) => (
+            <motion.button
+              key={el.id}
+              onClick={() => interactive && onElementTap(el.id)}
+              disabled={!interactive || foundElements.includes(el.id)}
+              whileHover={interactive ? { scale: 1.05 } : undefined}
+              whileTap={interactive ? { scale: 0.95 } : undefined}
+              className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 p-3 transition-all duration-200 backdrop-blur-md ${getElementStyle(el)}`}
+            >
+              <span className="text-2xl drop-shadow-md">
+                {getIcon(el.id)}
+              </span>
+              <span className="text-xs font-bold text-white drop-shadow-md leading-tight text-center">
+                {el.label}
+              </span>
+              {el.detail && (
+                <span className="text-[10px] text-white/80 drop-shadow-sm">{el.detail}</span>
+              )}
+              {foundElements.includes(el.id) && (
+                <span className="text-[10px] text-primary-foreground font-bold bg-primary/80 px-2 py-0.5 rounded-full">✓ Found</span>
+              )}
+            </motion.button>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
