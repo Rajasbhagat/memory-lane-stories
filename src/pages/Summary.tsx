@@ -1,16 +1,18 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Trophy, Eye, Lightbulb, Target, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import type { GameStats } from "@/hooks/useGameState";
 import { useProfile } from "@/hooks/useProfile";
 import { ANIMATION } from "@/config/accessibility.config";
 import confetti from "canvas-confetti";
 
-const ratingTitles: Record<number, string> = {
-  3: "Master Detective!",
-  2: "Sharp Investigator!",
-  1: "Good Work, Rookie!",
+const ratingMessages: Record<number, { title: string; subtitle: string }> = {
+  3: { title: "Master Detective!", subtitle: "Flawless investigation — no hints needed!" },
+  2: { title: "Sharp Investigator!", subtitle: "Great eye for detail — keep it up!" },
+  1: { title: "Good Work, Rookie!", subtitle: "Every case makes you stronger!" },
 };
 
 const Summary = () => {
@@ -27,7 +29,13 @@ const Summary = () => {
   };
 
   const stars = stats.hintsUsed === 0 ? 3 : stats.hintsUsed <= 3 ? 2 : 1;
-  const ratingTitle = ratingTitles[stars];
+  const rating = ratingMessages[stars];
+
+  // Max scores for progress bars
+  const maxMistakes = 6;
+  const observationScore = Math.min(Math.round((stats.mistakesSpotted / maxMistakes) * 100), 100);
+  const efficiencyScore = Math.max(0, Math.round(((maxMistakes - stats.hintsUsed) / maxMistakes) * 100));
+  const completionScore = Math.round((stats.scenariosCompleted / 3) * 100);
 
   useEffect(() => {
     if (savedRef.current) return;
@@ -68,85 +76,120 @@ const Summary = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: ANIMATION.DURATION_NORMAL / 1000 }}
-      className="flex min-h-screen items-center justify-center bg-background px-6"
+      className="flex min-h-screen items-center justify-center bg-background px-6 py-12"
     >
-      <div className="flex w-full max-w-lg flex-col items-center gap-8 text-center">
-        {/* Stars */}
+      <div className="flex w-full max-w-lg flex-col items-center gap-10 text-center">
+        {/* Trophy Icon — 80px in 128px circle */}
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          transition={{ type: "spring", damping: 10 }}
-          className="text-6xl"
+          transition={{ type: "spring", damping: 10, delay: 0.1 }}
+          className="flex h-32 w-32 items-center justify-center rounded-full bg-accent/15 shadow-lg"
         >
-          {"⭐".repeat(stars)}
+          <Trophy className="h-20 w-20 text-accent" strokeWidth={1.5} />
         </motion.div>
 
-        <div>
-          <h1 className="text-primary">Mission Complete!</h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-2 text-xl font-bold text-accent-foreground"
-          >
-            {ratingTitle}
-          </motion.p>
-        </div>
-
-        {/* Stats Card */}
+        {/* Title + Player Name */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: ANIMATION.DURATION_NORMAL / 1000 }}
-          className="w-full rounded-3xl bg-card p-8 shadow-md border-2 border-border"
+          transition={{ delay: 0.2 }}
         >
-          <div className="grid grid-cols-2 gap-6 text-left">
-            <div>
-              <p className="text-caption text-muted-foreground">Scenarios</p>
-              <p className="text-heading font-bold text-foreground">{stats.scenariosCompleted}/3</p>
-            </div>
-            <div>
-              <p className="text-caption text-muted-foreground">Mistakes Spotted</p>
-              <p className="text-heading font-bold text-foreground">{stats.mistakesSpotted}</p>
-            </div>
-            <div>
-              <p className="text-caption text-muted-foreground">Hints Used</p>
-              <p className="text-heading font-bold text-foreground">{stats.hintsUsed}</p>
-            </div>
-            <div>
-              <p className="text-caption text-muted-foreground">Rating</p>
-              <p className="text-heading font-bold">{"⭐".repeat(stars)}</p>
-            </div>
-          </div>
+          <h1 className="text-4xl text-foreground">Mission Complete!</h1>
+          <p className="mt-2 text-2xl font-bold text-primary">{playerName}</p>
         </motion.div>
 
-        {/* Johnny's message */}
+        {/* Star Rating — sequential pop-in */}
+        <div className="flex items-center gap-4">
+          {[1, 2, 3].map((i) => (
+            <motion.span
+              key={i}
+              initial={{ scale: 0, rotate: -30 }}
+              animate={i <= stars ? { scale: 1, rotate: 0 } : { scale: 1, rotate: 0, opacity: 0.2 }}
+              transition={{ type: "spring", damping: 8, delay: 0.3 + i * 0.15 }}
+              className="text-5xl"
+            >
+              ⭐
+            </motion.span>
+          ))}
+        </div>
+
+        {/* Rating message */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: ANIMATION.DURATION_NORMAL / 1000 }}
-          className="flex items-start gap-4 rounded-3xl bg-card p-6 shadow-md border-2 border-border"
+          transition={{ delay: 0.8 }}
         >
-          <span className="text-4xl">🕵️</span>
-          <p className="text-speech text-card-foreground">
-            Great work today, Detective {playerName}! You've got sharp eyes. See you on the next mission!
-          </p>
+          <p className="text-xl font-bold text-accent-foreground">{rating.title}</p>
+          <p className="mt-1 text-lg text-muted-foreground">{rating.subtitle}</p>
         </motion.div>
 
-        {/* Actions */}
+        {/* Skill Breakdown with Progress Bars */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: ANIMATION.DURATION_NORMAL / 1000 }}
-          className="flex w-full flex-col gap-4 pb-8"
+          className="w-full rounded-3xl bg-card p-8 shadow-md border-2 border-border"
+        >
+          <h2 className="text-xl font-bold text-foreground text-left mb-6">Skill Breakdown</h2>
+          <div className="flex flex-col gap-6">
+            <SkillRow
+              icon={<Eye className="h-7 w-7 text-primary" />}
+              label="Observation"
+              detail={`${stats.mistakesSpotted} mistakes spotted`}
+              value={observationScore}
+              delay={0.6}
+            />
+            <SkillRow
+              icon={<Lightbulb className="h-7 w-7 text-accent" />}
+              label="Efficiency"
+              detail={`${stats.hintsUsed} hints used`}
+              value={efficiencyScore}
+              delay={0.7}
+            />
+            <SkillRow
+              icon={<Target className="h-7 w-7 text-success" />}
+              label="Completion"
+              detail={`${stats.scenariosCompleted}/3 scenarios`}
+              value={completionScore}
+              delay={0.8}
+            />
+          </div>
+        </motion.div>
+
+        {/* Johnny's farewell — framed card */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: ANIMATION.DURATION_NORMAL / 1000 }}
+          className="w-full rounded-3xl bg-card p-6 shadow-md border-2 border-primary/20"
+        >
+          <div className="flex items-start gap-4">
+            <span className="text-5xl">🕵️</span>
+            <div className="text-left">
+              <p className="text-lg font-bold text-foreground mb-1">Detective Johnny</p>
+              <p className="text-speech text-card-foreground">
+                Fantastic work today, {playerName}! Every case you solve sharpens your skills. I'll be here whenever you're ready for the next mission!
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Actions — 96px Play Again, 72px Done */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0, duration: ANIMATION.DURATION_NORMAL / 1000 }}
+          className="flex w-full flex-col gap-4 pb-10"
         >
           <Button
             onClick={() => navigate("/play")}
             variant="accent"
-            size="lg"
-            className="w-full"
+            size="xl"
+            className="w-full text-2xl shadow-xl gap-3"
           >
-            Play Again
+            Accept New Case
+            <ChevronRight className="h-8 w-8" />
           </Button>
           <Button
             onClick={() => navigate("/")}
@@ -161,5 +204,31 @@ const Summary = () => {
     </motion.div>
   );
 };
+
+/* Skill row sub-component */
+interface SkillRowProps {
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  value: number;
+  delay: number;
+}
+
+const SkillRow = ({ icon, label, detail, value, delay }: SkillRowProps) => (
+  <motion.div
+    initial={{ opacity: 0, x: -12 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ delay, duration: 0.3 }}
+  >
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-3">
+        {icon}
+        <span className="text-lg font-bold text-foreground">{label}</span>
+      </div>
+      <span className="text-caption text-muted-foreground">{detail}</span>
+    </div>
+    <Progress value={value} className="h-4" />
+  </motion.div>
+);
 
 export default Summary;
