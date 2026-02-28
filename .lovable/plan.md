@@ -21,7 +21,7 @@ Saved all 5 implementation guides to `docs/implementation/`.
 
 ---
 
-## Step 3: Core Screen — Play.tsx Simplification
+## Step 3: Core Screen — Play.tsx Simplification ✅ DONE
 - Phase indicator: 60px card with `rounded-2xl`, `text-xl`, Shield icon
 - Hide conversation history during gameplay (reduce cognitive load)
 - NPC container min-height 200px, text `text-xl`, padding `p-6`

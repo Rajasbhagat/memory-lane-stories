@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lightbulb } from "lucide-react";
+import { Shield, Lightbulb, BookOpen, Mic, Hand } from "lucide-react";
 import { useGameState } from "@/hooks/useGameState";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 import NPCCompanion from "@/components/game/NPCCompanion";
@@ -9,6 +9,7 @@ import VoiceControls from "@/components/game/VoiceControls";
 import SceneContainer from "@/components/game/SceneContainer";
 import HintOverlay from "@/components/game/HintOverlay";
 import CelebrationOverlay from "@/components/game/CelebrationOverlay";
+import PhaseIndicator from "@/components/game/PhaseIndicator";
 import { Button } from "@/components/ui/button";
 
 const MAX_EXCHANGES = 5;
@@ -146,18 +147,25 @@ const Play = () => {
 
   const voiceDisabled = state.phase !== "speak" || voiceState === "processing" || voiceState === "speaking";
 
+  const activePhaseIndex = state.phase === "story" ? 0 : state.phase === "speak" ? 1 : 2;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="flex min-h-screen flex-col bg-background"
     >
+      {/* Phase Indicator */}
       <div className="px-6 pt-5 pb-2">
-        <p className="text-caption text-muted-foreground text-center">
-          {currentScenario.title} — Phase {state.currentPhaseIndex + 1}/{currentScenario.phases.length}
-        </p>
+        <PhaseIndicator
+          scenarioTitle={currentScenario.title}
+          phaseNumber={state.currentPhaseIndex + 1}
+          totalPhases={currentScenario.phases.length}
+          activePhase={activePhaseIndex}
+        />
       </div>
 
+      {/* NPC Companion — min-height 200px, larger text */}
       <div className="px-6 pt-3">
         <NPCCompanion
           text={npcText}
@@ -166,29 +174,7 @@ const Play = () => {
         />
       </div>
 
-      {/* Conversation history mini-log */}
-      {state.phase === "speak" && conversationHistory.length > 0 && (
-        <div className="px-6 pt-3 max-h-40 overflow-y-auto">
-          <div className="flex flex-col gap-2">
-            {conversationHistory.slice(-4).map((msg, i) => (
-              <div
-                key={i}
-                className={`text-caption rounded-2xl px-4 py-2 ${
-                  msg.role === "user"
-                    ? "bg-primary/10 text-primary self-end ml-8"
-                    : "bg-muted text-muted-foreground self-start mr-8"
-                }`}
-              >
-                <span className="font-bold">
-                  {msg.role === "user" ? "You" : "Johnny"}:
-                </span>{" "}
-                {msg.content}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* Scene */}
       <div className="flex-1 px-6 py-4">
         <AnimatePresence mode="wait">
           <SceneContainer
@@ -204,6 +190,7 @@ const Play = () => {
         </AnimatePresence>
       </div>
 
+      {/* Hint button — touch phase only */}
       {state.phase === "touch" && (
         <div className="flex justify-center pb-3">
           <Button variant="ghost" onClick={useHint} className="gap-2 text-muted-foreground min-h-touch">
@@ -213,6 +200,7 @@ const Play = () => {
         </div>
       )}
 
+      {/* Voice Controls */}
       <div className="px-6 pb-6">
         <VoiceControls
           state={voiceState}
