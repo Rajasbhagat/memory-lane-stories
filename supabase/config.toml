@@ -1,1 +1,7 @@
 project_id = "lyevytpgjwahzrmlbucx"
+
+[functions.elevenlabs-tts]
+verify_jwt = false
+
+[functions.gemini-voice]
+verify_jwt = false
