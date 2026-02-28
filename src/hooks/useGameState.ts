@@ -27,7 +27,12 @@ const initialStats: GameStats = {
   hintsUsed: 0,
 };
 
-export function useGameState() {
+export function useGameState(scenarioIndex?: number) {
+  // Filter to single scenario if specified
+  const activeScenarios = scenarioIndex !== undefined
+    ? [scenarios[scenarioIndex]].filter(Boolean)
+    : scenarios;
+
   const [state, setState] = useState<GameState>({
     currentScenarioIndex: 0,
     currentPhaseIndex: 0,
@@ -40,7 +45,7 @@ export function useGameState() {
     wrongAttempts: 0,
   });
 
-  const currentScenario: Scenario | undefined = scenarios[state.currentScenarioIndex];
+  const currentScenario: Scenario | undefined = activeScenarios[state.currentScenarioIndex];
   const currentPhase: ScenarioPhase | undefined = currentScenario?.phases[state.currentPhaseIndex];
 
   const setPhase = useCallback((phase: GamePhase) => {
@@ -114,7 +119,7 @@ export function useGameState() {
 
   const onCelebrationComplete = useCallback(() => {
     setState((s) => {
-      const scenario = scenarios[s.currentScenarioIndex];
+      const scenario = activeScenarios[s.currentScenarioIndex];
       const nextPhaseIndex = s.currentPhaseIndex + 1;
 
       if (scenario && nextPhaseIndex < scenario.phases.length) {
@@ -130,7 +135,7 @@ export function useGameState() {
       }
 
       const nextScenarioIndex = s.currentScenarioIndex + 1;
-      if (nextScenarioIndex < scenarios.length) {
+      if (nextScenarioIndex < activeScenarios.length) {
         return {
           ...s,
           currentScenarioIndex: nextScenarioIndex,
@@ -150,7 +155,7 @@ export function useGameState() {
         stats: { ...s.stats, scenariosCompleted: s.stats.scenariosCompleted + 1 },
       };
     });
-  }, []);
+  }, [activeScenarios]);
 
   const onTransitionComplete = useCallback(() => {
     setState((s) => ({ ...s, phase: "story" }));

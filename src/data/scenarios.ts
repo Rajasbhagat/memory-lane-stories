@@ -25,6 +25,9 @@ export interface Scenario {
   id: number;
   title: string;
   setting: string;
+  description: string;
+  icon: string;
+  difficulty: 1 | 2 | 3;
   phases: ScenarioPhase[];
 }
 
@@ -127,23 +130,125 @@ function buildScenario2Phase(): ScenarioPhase {
   };
 }
 
+// Randomize error type for scenario 4
+function buildScenario4Phase(): ScenarioPhase {
+  const errorTypes = ["wrong-date", "wrong-description", "contradicting-alibi"] as const;
+  const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+
+  const baseElements: ScenarioElement[] = [
+    { id: "statement-header", label: "Case Header", isWrong: false, hint: "The case header looks correct." },
+    { id: "witness-name", label: "Witness: Maria Santos", isWrong: false, hint: "The witness name matches our records." },
+    { id: "officer-signature", label: "Officer Signature", isWrong: false, hint: "The officer's signature is valid." },
+  ];
+
+  if (errorType === "wrong-date") {
+    baseElements.push(
+      { id: "incident-date", label: "Incident Date: March 15", isWrong: true, hint: "Wait — the incident happened on March 17, not March 15! The date is wrong." },
+      { id: "location-field", label: "Location: 5th & Main", isWrong: false, hint: "The location matches the police report." },
+      { id: "time-field", label: "Time: 9:30 PM", isWrong: false, hint: "The time is consistent with other statements." },
+    );
+  } else if (errorType === "wrong-description") {
+    baseElements.push(
+      { id: "suspect-height", label: "Suspect: 5'6\", brown jacket", isWrong: true, hint: "The other witnesses said the suspect was 6'1\" and wore a black jacket — this description doesn't match!" },
+      { id: "incident-date", label: "Incident Date: March 17", isWrong: false, hint: "The date is correct." },
+      { id: "location-field", label: "Location: 5th & Main", isWrong: false, hint: "The location matches." },
+    );
+  } else {
+    baseElements.push(
+      { id: "alibi-claim", label: "Alibi: 'Was at home all night'", isWrong: true, hint: "But the CCTV footage shows this witness at the gas station at 10 PM — the alibi contradicts the evidence!" },
+      { id: "incident-date", label: "Incident Date: March 17", isWrong: false, hint: "The date is correct." },
+      { id: "time-field", label: "Time: 9:30 PM", isWrong: false, hint: "The time is consistent." },
+    );
+  }
+
+  return {
+    id: "interview-review",
+    narrative:
+      `Partner, I've got an important interview in 20 minutes and I need to review this witness statement first. Maria Santos came in yesterday and gave her account of what happened on the night of the robbery. I've also got the police report, CCTV footage notes, and two other witness statements to cross-reference. Something in Maria's statement doesn't add up — I can feel it. Read through each detail carefully and compare it to what we already know. Check the dates, the descriptions, the alibis — everything. If something doesn't match, tap on it and let me know.`,
+    prompt: "What's inconsistent in the statement?",
+    elements: baseElements,
+    successMessage: "Sharp eye, {name}! That inconsistency could crack the case wide open!",
+    hints: {
+      attempt1: "That detail checks out. Look for something that contradicts the other evidence we have.",
+      attempt2: "Compare each field to the police report and CCTV notes. One detail doesn't match up.",
+      attempt3: "Here — this is the inconsistency.",
+    },
+  };
+}
+
+// Randomize error type for scenario 5
+function buildScenario5Phase(): ScenarioPhase {
+  const errorTypes = ["wrong-color", "wrong-plate", "wrong-model"] as const;
+  const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+
+  const baseElements: ScenarioElement[] = [
+    { id: "description-card", label: "Suspect Vehicle: Blue sedan, plate BK-4471", isWrong: false, hint: "This is the description we're matching against." },
+  ];
+
+  if (errorType === "wrong-color") {
+    baseElements.push(
+      { id: "car-a", label: "Slot A: Blue Sedan, BK-4471", isWrong: false, hint: "Blue sedan with matching plate — this looks right!" },
+      { id: "car-b", label: "Slot B: Red Sedan, BK-4471", isWrong: true, hint: "Same plate number, but the color is red — the suspect drives a BLUE sedan!" },
+      { id: "car-c", label: "Slot C: Blue SUV, MN-2209", isWrong: false, hint: "Different plate and it's an SUV — clearly not our suspect." },
+      { id: "car-d", label: "Slot D: White Hatchback, TX-8832", isWrong: false, hint: "Wrong type, wrong plate — not suspicious." },
+    );
+  } else if (errorType === "wrong-plate") {
+    baseElements.push(
+      { id: "car-a", label: "Slot A: Blue Sedan, BK-4471", isWrong: false, hint: "This matches perfectly." },
+      { id: "car-b", label: "Slot B: Blue Sedan, BK-4417", isWrong: true, hint: "Almost! The plate says BK-4417 but the suspect's plate is BK-4471 — the digits are swapped!" },
+      { id: "car-c", label: "Slot C: Silver Sedan, JK-1105", isWrong: false, hint: "Different color and plate — not our car." },
+      { id: "car-d", label: "Slot D: Blue Pickup, RL-6643", isWrong: false, hint: "Blue, but it's a pickup truck — not a sedan." },
+    );
+  } else {
+    baseElements.push(
+      { id: "car-a", label: "Slot A: Blue Sedan, BK-4471", isWrong: false, hint: "This matches the description." },
+      { id: "car-b", label: "Slot B: Blue Coupe, BK-4471", isWrong: true, hint: "Same plate and color, but that's a coupe — the suspect drives a SEDAN!" },
+      { id: "car-c", label: "Slot C: Green Sedan, PQ-3358", isWrong: false, hint: "Wrong color and plate — not a match." },
+      { id: "car-d", label: "Slot D: Black Van, WZ-9901", isWrong: false, hint: "Totally different vehicle." },
+    );
+  }
+
+  return {
+    id: "parking-surveillance",
+    narrative:
+      `Alright, we've got security camera footage from the parking lot near the crime scene. The suspect is believed to drive a blue sedan with license plate BK-4471. I'm looking at four vehicles in the lot right now. Most of them are clearly not our suspect's car, but one of them looks close — maybe too close. It could be a decoy or a similar vehicle trying to throw us off. I need you to examine each car's details: the color, the model type, and the license plate. Compare them against the suspect vehicle description. If something doesn't match exactly, tap on it and let me know which car is the imposter.`,
+    prompt: "Which car doesn't match the suspect description?",
+    elements: baseElements,
+    successMessage: "Excellent work, {name}! That car almost fooled us, but you caught the difference!",
+    hints: {
+      attempt1: "That vehicle is clearly different. Look for the one that's almost right but has one detail off.",
+      attempt2: "Compare color, model type, AND plate number very carefully. One car has a subtle mismatch.",
+      attempt3: "Let me highlight the imposter for you.",
+    },
+  };
+}
+
 export const scenarios: Scenario[] = [
   {
     id: 1,
     title: "Mission Control Kits",
     setting: "operations-room",
+    description: "Audit Johnny's field kits before a big surveillance op. Something's out of place!",
+    icon: "🎒",
+    difficulty: 1,
     phases: [buildScenario1Phase()],
   },
   {
     id: 2,
     title: "Safehouse Kitchen",
     setting: "safehouse-kitchen",
+    description: "Check the kitchen for hazards before Johnny heads out. Safety first!",
+    icon: "🍳",
+    difficulty: 1,
     phases: [buildScenario2Phase()],
   },
   {
     id: 3,
     title: "Evidence Run Across Town",
     setting: "evidence-run",
+    description: "Navigate the city, dodge distractions, and pick up the right evidence envelope.",
+    icon: "🚗",
+    difficulty: 3,
     phases: [
       {
         id: "route-selection",
@@ -201,5 +306,23 @@ export const scenarios: Scenario[] = [
         },
       },
     ],
+  },
+  {
+    id: 4,
+    title: "Witness Interview Room",
+    setting: "interview-room",
+    description: "Review a witness statement for inconsistencies before the big interview.",
+    icon: "📋",
+    difficulty: 2,
+    phases: [buildScenario4Phase()],
+  },
+  {
+    id: 5,
+    title: "Parking Lot Surveillance",
+    setting: "parking-lot",
+    description: "Match suspect vehicle details from security footage. One car is an imposter!",
+    icon: "📹",
+    difficulty: 2,
+    phases: [buildScenario5Phase()],
   },
 ];
