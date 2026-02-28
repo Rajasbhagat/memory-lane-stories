@@ -4,27 +4,40 @@ import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { useProfile } from "@/hooks/useProfile";
 
 const Index = () => {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [sessionCount, setSessionCount] = useState(1);
+  const { profile, loading, updateName } = useProfile();
 
   useEffect(() => {
     const stored = localStorage.getItem("mindset-name");
     if (stored) setName(stored);
-    const count = parseInt(localStorage.getItem("mindset-sessions") || "1", 10);
-    setSessionCount(count);
   }, []);
 
+  // Sync name from profile on load
+  useEffect(() => {
+    if (profile?.display_name && !name.trim()) {
+      setName(profile.display_name);
+    }
+  }, [profile]);
+
   const handleStart = () => {
-    if (name.trim()) localStorage.setItem("mindset-name", name.trim());
-    const next = sessionCount + 1;
-    localStorage.setItem("mindset-sessions", String(next));
+    const trimmed = name.trim();
+    if (trimmed) {
+      localStorage.setItem("mindset-name", trimmed);
+      updateName(trimmed);
+    }
     navigate("/play");
   };
 
   const greeting = name.trim() ? `Welcome back, ${name.trim()}!` : "Welcome to MindSet!";
+
+  // Progress: each session is worth ~10%, cap at 100
+  const progressValue = profile ? Math.min(profile.total_sessions * 10, 100) : 0;
 
   return (
     <motion.div
@@ -80,6 +93,54 @@ const Index = () => {
           />
         </motion.div>
 
+        {/* Profile Card */}
+        {!loading && profile && profile.total_sessions > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+            className="w-full"
+          >
+            <Card className="border-primary/20">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">🕵️</span>
+                  <span className="text-lg font-semibold text-foreground">
+                    Detective {profile.display_name}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 text-left mb-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Sessions</p>
+                    <p className="text-lg font-bold text-foreground">{profile.total_sessions}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Mistakes</p>
+                    <p className="text-lg font-bold text-foreground">{profile.total_mistakes_spotted}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Best</p>
+                    <p className="text-lg font-bold">
+                      {profile.best_star_rating > 0
+                        ? "⭐".repeat(profile.best_star_rating)
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Progress</span>
+                    <span>{progressValue}%</span>
+                  </div>
+                  <Progress value={progressValue} className="h-2" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -94,16 +155,6 @@ const Index = () => {
             Start Today's Mission
           </Button>
         </motion.div>
-
-        {/* Session indicator */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-sm text-muted-foreground"
-        >
-          Session #{sessionCount}
-        </motion.p>
       </div>
     </motion.div>
   );
