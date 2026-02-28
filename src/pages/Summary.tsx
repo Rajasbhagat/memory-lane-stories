@@ -1,18 +1,56 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import type { GameStats } from "@/hooks/useGameState";
+import confetti from "canvas-confetti";
+
+const ratingTitles: Record<number, string> = {
+  3: "Master Detective!",
+  2: "Sharp Investigator!",
+  1: "Good Work, Rookie!",
+};
 
 const Summary = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const playerName = localStorage.getItem("mindset-name")?.trim() || "Detective";
   const stats = (location.state as GameStats) || {
     scenariosCompleted: 3,
     mistakesSpotted: 0,
     hintsUsed: 0,
   };
 
-  const stars = stats.hintsUsed === 0 ? 3 : stats.hintsUsed <= 2 ? 2 : 1;
+  const stars = stats.hintsUsed === 0 ? 3 : stats.hintsUsed <= 3 ? 2 : 1;
+  const ratingTitle = ratingTitles[stars];
+
+  // Fire confetti on mount
+  useEffect(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.6 },
+        colors: ["#7fb896", "#e07850", "#f5c842"],
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.6 },
+        colors: ["#7fb896", "#e07850", "#f5c842"],
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  }, []);
 
   return (
     <motion.div
@@ -21,17 +59,27 @@ const Summary = () => {
       className="flex min-h-screen items-center justify-center bg-background px-6"
     >
       <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-        {/* Confetti emoji */}
+        {/* Stars */}
         <motion.div
           initial={{ scale: 0 }}
-          animate={{ scale: 1, rotate: [0, 15, -15, 0] }}
+          animate={{ scale: 1 }}
           transition={{ type: "spring", damping: 10 }}
-          className="text-7xl"
+          className="text-6xl"
         >
-          🎉
+          {"⭐".repeat(stars)}
         </motion.div>
 
-        <h1 className="text-heading-lg font-bold text-primary">Mission Complete!</h1>
+        <div>
+          <h1 className="text-heading-lg font-bold text-primary">Mission Complete!</h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-1 text-lg font-semibold text-accent"
+          >
+            {ratingTitle}
+          </motion.p>
+        </div>
 
         {/* Stats Card */}
         <motion.div
@@ -69,7 +117,7 @@ const Summary = () => {
         >
           <span className="text-3xl">🕵️</span>
           <p className="text-speech text-card-foreground">
-            Great work today, Detective! You've got sharp eyes. See you on the next mission!
+            Great work today, Detective {playerName}! You've got sharp eyes. See you on the next mission!
           </p>
         </motion.div>
 

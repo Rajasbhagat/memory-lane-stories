@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb } from "lucide-react";
@@ -11,8 +11,12 @@ import HintOverlay from "@/components/game/HintOverlay";
 import CelebrationOverlay from "@/components/game/CelebrationOverlay";
 import { Button } from "@/components/ui/button";
 
+const SKIP_SPEAK_TIMEOUT_MS = 15000;
+
 const Play = () => {
   const navigate = useNavigate();
+  const playerName = localStorage.getItem("mindset-name")?.trim() || "Detective";
+
   const {
     state,
     currentScenario,
@@ -24,17 +28,40 @@ const Play = () => {
     onTransitionComplete,
     useHint,
     dismissHint,
+    getHintText,
   } = useGameState();
 
-  const { voiceState, transcript, npcReply, startListening, stopListening, submitText, processWithGemini } = useVoiceSession();
+  const {
+    voiceState,
+    transcript,
+    npcReply,
+    voiceError,
+    startListening,
+    stopListening,
+    submitText,
+    processWithGemini,
+    playNarration,
+    clearError,
+  } = useVoiceSession();
 
-  // Auto-advance from story after delay
+  // Auto-advance from story after delay + TTS
   useEffect(() => {
-    if (state.phase === "story") {
-      const timer = setTimeout(onStoryComplete, 3000);
+    if (state.phase === "story" && currentPhase) {
+      playNarration(currentPhase.narrative);
+      const timer = setTimeout(onStoryComplete, 4000);
       return () => clearTimeout(timer);
     }
   }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex]);
+
+  // Skip-speak timeout: auto-advance to touch after 15s
+  useEffect(() => {
+    if (state.phase === "speak") {
+      const timer = setTimeout(() => {
+        onSpeakComplete();
+      }, SKIP_SPEAK_TIMEOUT_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [state.phase, onSpeakComplete]);
 
   // Auto-advance from transition
   useEffect(() => {
@@ -57,14 +84,14 @@ const Play = () => {
     ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
     : "";
 
-  // When transcript arrives from speech recognition, send to Gemini
+  // When transcript arrives from speech recognition, send to AI
   useEffect(() => {
     if (transcript && voiceState === "processing" && state.phase === "speak") {
       processWithGemini(transcript, scenarioContext);
     }
   }, [transcript, voiceState]);
 
-  // When Gemini replies, advance to touch phase
+  // When AI replies, advance to touch phase
   useEffect(() => {
     if (npcReply && state.phase === "speak") {
       setTimeout(onSpeakComplete, 1500);
@@ -81,10 +108,9 @@ const Play = () => {
 
   if (!currentScenario || !currentPhase) return null;
 
-  // Get first unfound wrong element's hint for the hint overlay
-  const nextHint =
-    currentPhase.elements.find((e) => e.isWrong && !state.foundElements.includes(e.id))?.hint ||
-    "Look more carefully...";
+  // Personalized NPC text
+  const personalizedSuccess = currentPhase.successMessage.replace("{name}", playerName);
+  const hintText = getHintText();
 
   const npcMood =
     state.phase === "celebrate"
@@ -99,9 +125,9 @@ const Play = () => {
       : state.phase === "speak"
         ? (npcReply || currentPhase.prompt)
         : state.phase === "touch"
-          ? (npcReply || "Now show me — tap on what's wrong!")
+          ? (npcReply || `Now show me — tap on what's wrong, ${playerName}!`)
           : state.phase === "celebrate"
-            ? currentPhase.successMessage
+            ? personalizedSuccess
             : state.phase === "transition"
               ? "On to the next challenge..."
               : currentPhase.prompt;
@@ -140,7 +166,7 @@ const Play = () => {
         </AnimatePresence>
       </div>
 
-      {/* Hint button */}
+      {/* Hint button with escalation info */}
       {state.phase === "touch" && (
         <div className="flex justify-center pb-2">
           <Button
@@ -149,7 +175,7 @@ const Play = () => {
             className="gap-2 text-muted-foreground"
           >
             <Lightbulb className="h-4 w-4" />
-            Need a hint?
+            Need a hint? {state.wrongAttempts > 0 && `(${state.wrongAttempts} wrong)`}
           </Button>
         </div>
       )}
@@ -163,18 +189,20 @@ const Play = () => {
           onStopListening={stopListening}
           onTextSubmit={handleVoiceSubmit}
           disabled={state.phase !== "speak"}
+          voiceError={voiceError}
+          onClearError={clearError}
         />
       </div>
 
       {/* Overlays */}
       <HintOverlay
         isVisible={state.phase === "hint"}
-        hintText={nextHint}
+        hintText={hintText}
         onDismiss={dismissHint}
       />
       <CelebrationOverlay
         isVisible={state.phase === "celebrate"}
-        message={currentPhase.successMessage}
+        message={personalizedSuccess}
         onComplete={onCelebrationComplete}
       />
     </motion.div>

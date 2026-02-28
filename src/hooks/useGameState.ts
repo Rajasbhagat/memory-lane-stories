@@ -18,6 +18,7 @@ export interface GameState {
   incorrectElements: string[];
   foundElements: string[];
   isComplete: boolean;
+  wrongAttempts: number; // track wrong taps for hint escalation
 }
 
 const initialStats: GameStats = {
@@ -36,6 +37,7 @@ export function useGameState() {
     incorrectElements: [],
     foundElements: [],
     isComplete: false,
+    wrongAttempts: 0,
   });
 
   const currentScenario: Scenario | undefined = scenarios[state.currentScenarioIndex];
@@ -79,10 +81,26 @@ export function useGameState() {
           }, 800);
         }
       } else {
+        // Wrong tap — increment wrongAttempts for hint escalation
         setState((s) => ({
           ...s,
           incorrectElements: [...s.incorrectElements, elementId],
+          wrongAttempts: s.wrongAttempts + 1,
         }));
+
+        // On 3+ wrong attempts, auto-highlight the correct element
+        if (state.wrongAttempts + 1 >= 3) {
+          const correctWrong = currentPhase.elements.find(
+            (e) => e.isWrong && !state.foundElements.includes(e.id)
+          );
+          if (correctWrong) {
+            setState((s) => ({
+              ...s,
+              highlightedElement: correctWrong.id,
+            }));
+          }
+        }
+
         setTimeout(() => {
           setState((s) => ({
             ...s,
@@ -91,7 +109,7 @@ export function useGameState() {
         }, 600);
       }
     },
-    [currentPhase, state.foundElements],
+    [currentPhase, state.foundElements, state.wrongAttempts],
   );
 
   const onCelebrationComplete = useCallback(() => {
@@ -107,6 +125,7 @@ export function useGameState() {
           highlightedElement: null,
           incorrectElements: [],
           foundElements: [],
+          wrongAttempts: 0,
         };
       }
 
@@ -120,6 +139,7 @@ export function useGameState() {
           highlightedElement: null,
           incorrectElements: [],
           foundElements: [],
+          wrongAttempts: 0,
           stats: { ...s.stats, scenariosCompleted: s.stats.scenariosCompleted + 1 },
         };
       }
@@ -135,6 +155,15 @@ export function useGameState() {
   const onTransitionComplete = useCallback(() => {
     setState((s) => ({ ...s, phase: "story" }));
   }, []);
+
+  // Hint escalation: returns the appropriate hint text based on wrongAttempts
+  const getHintText = useCallback((): string => {
+    if (!currentPhase) return "Look more carefully...";
+    const { hints } = currentPhase;
+    if (state.wrongAttempts <= 1) return hints.attempt1;
+    if (state.wrongAttempts === 2) return hints.attempt2;
+    return hints.attempt3;
+  }, [currentPhase, state.wrongAttempts]);
 
   const useHint = useCallback(() => {
     setState((s) => ({
@@ -158,6 +187,7 @@ export function useGameState() {
       incorrectElements: [],
       foundElements: [],
       isComplete: false,
+      wrongAttempts: 0,
     });
   }, []);
 
@@ -174,5 +204,6 @@ export function useGameState() {
     useHint,
     dismissHint,
     resetGame,
+    getHintText,
   };
 }
