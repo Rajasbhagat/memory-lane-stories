@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lightbulb } from "lucide-react";
@@ -44,12 +44,22 @@ const Play = () => {
     clearError,
   } = useVoiceSession();
 
-  // Auto-advance from story after delay + TTS
+  const scenarioContext = currentPhase
+    ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
+    : "";
+
+  const handleVoiceSubmit = useCallback(
+    (text: string) => {
+      submitText(text, scenarioContext);
+      setTimeout(onSpeakComplete, 1500);
+    },
+    [submitText, onSpeakComplete, scenarioContext],
+  );
+
   // Auto-advance from story — longer delay for longer narratives
   useEffect(() => {
     if (state.phase === "story" && currentPhase) {
       playNarration(currentPhase.narrative);
-      // ~60ms per character for reading time, minimum 5s
       const readTime = Math.max(5000, currentPhase.narrative.length * 60);
       const timer = setTimeout(onStoryComplete, readTime);
       return () => clearTimeout(timer);
@@ -59,9 +69,7 @@ const Play = () => {
   // Skip-speak timeout: auto-advance to touch after 15s
   useEffect(() => {
     if (state.phase === "speak") {
-      const timer = setTimeout(() => {
-        onSpeakComplete();
-      }, SKIP_SPEAK_TIMEOUT_MS);
+      const timer = setTimeout(onSpeakComplete, SKIP_SPEAK_TIMEOUT_MS);
       return () => clearTimeout(timer);
     }
   }, [state.phase, onSpeakComplete]);
@@ -77,15 +85,9 @@ const Play = () => {
   // Navigate to summary when complete
   useEffect(() => {
     if (state.isComplete) {
-      navigate("/summary", {
-        state: state.stats,
-      });
+      navigate("/summary", { state: state.stats });
     }
   }, [state.isComplete, navigate, state.stats]);
-
-  const scenarioContext = currentPhase
-    ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
-    : "";
 
   // When transcript arrives from speech recognition, send to AI
   useEffect(() => {
@@ -101,17 +103,9 @@ const Play = () => {
     }
   }, [npcReply]);
 
-  const handleVoiceSubmit = useCallback(
-    (text: string) => {
-      submitText(text, scenarioContext);
-      setTimeout(onSpeakComplete, 1500);
-    },
-    [submitText, onSpeakComplete, scenarioContext],
-  );
-
+  // Early return AFTER all hooks
   if (!currentScenario || !currentPhase) return null;
 
-  // Personalized NPC text
   const personalizedSuccess = currentPhase.successMessage.replace("{name}", playerName);
   const hintText = getHintText();
 
@@ -141,19 +135,16 @@ const Play = () => {
       animate={{ opacity: 1 }}
       className="flex min-h-screen flex-col bg-background"
     >
-      {/* Header */}
       <div className="px-4 pt-4 pb-2">
         <p className="text-xs text-muted-foreground text-center">
           {currentScenario.title} — Phase {state.currentPhaseIndex + 1}/{currentScenario.phases.length}
         </p>
       </div>
 
-      {/* Zone A — NPC */}
       <div className="px-4 pt-2">
         <NPCCompanion text={npcText} isTyping={state.phase === "story"} mood={npcMood} />
       </div>
 
-      {/* Zone B — Scene */}
       <div className="flex-1 px-4 py-3">
         <AnimatePresence mode="wait">
           <SceneContainer
@@ -169,21 +160,15 @@ const Play = () => {
         </AnimatePresence>
       </div>
 
-      {/* Hint button with escalation info */}
       {state.phase === "touch" && (
         <div className="flex justify-center pb-2">
-          <Button
-            variant="ghost"
-            onClick={useHint}
-            className="gap-2 text-muted-foreground"
-          >
+          <Button variant="ghost" onClick={useHint} className="gap-2 text-muted-foreground">
             <Lightbulb className="h-4 w-4" />
             Need a hint? {state.wrongAttempts > 0 && `(${state.wrongAttempts} wrong)`}
           </Button>
         </div>
       )}
 
-      {/* Zone C — Voice Controls */}
       <div className="px-4 pb-4">
         <VoiceControls
           state={voiceState}
@@ -197,7 +182,6 @@ const Play = () => {
         />
       </div>
 
-      {/* Overlays */}
       <HintOverlay
         isVisible={state.phase === "hint"}
         hintText={hintText}
