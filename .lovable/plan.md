@@ -46,7 +46,7 @@ Saved all 5 implementation guides to `docs/implementation/`.
 
 ---
 
-## Step 5: Voice Button & VoiceControls Enhancement
+## Step 5: Voice Button & VoiceControls Enhancement ✅ DONE
 - Animated ping effect when listening (two-layer ping at bottom-right)
 - Brief transcription overlay below mic (3s fadeout, `bg-primary/10`, `rounded-2xl`)
 - States: idle=primary blue, listening=accent amber+pulse+ping, processing=disabled, error=red flash

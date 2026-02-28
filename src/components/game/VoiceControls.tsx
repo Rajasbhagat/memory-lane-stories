@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Send, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ interface VoiceControlsProps {
 const stateLabels: Record<VoiceState, string> = {
   idle: "Tap to speak",
   listening: "Listening...",
-  processing: "Processing...",
+  processing: "Thinking...",
   speaking: "Johnny is speaking...",
 };
 
@@ -34,6 +34,18 @@ const VoiceControls = ({
   onClearError,
 }: VoiceControlsProps) => {
   const [textInput, setTextInput] = useState("");
+  const [showTranscript, setShowTranscript] = useState(false);
+  const transcriptTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Show transcript overlay for 3s then fade out
+  useEffect(() => {
+    if (transcript) {
+      setShowTranscript(true);
+      clearTimeout(transcriptTimer.current);
+      transcriptTimer.current = setTimeout(() => setShowTranscript(false), 3000);
+    }
+    return () => clearTimeout(transcriptTimer.current);
+  }, [transcript]);
 
   const handleMicClick = () => {
     if (disabled) return;
@@ -52,6 +64,17 @@ const VoiceControls = ({
   };
 
   const showWaveform = state === "listening" || state === "speaking";
+  const isListening = state === "listening";
+  const isError = !!voiceError;
+
+  // Color-coded mic button styles
+  const micButtonClass = isListening
+    ? "bg-accent hover:bg-accent/90 shadow-[0_0_20px_hsl(var(--accent)/0.4)]"
+    : isError
+      ? "bg-destructive hover:bg-destructive/90 animate-shake"
+      : disabled || state === "processing" || state === "speaking"
+        ? "bg-muted text-muted-foreground"
+        : "bg-primary hover:bg-primary/90";
 
   return (
     <motion.div
@@ -61,42 +84,64 @@ const VoiceControls = ({
       className="flex flex-col items-center gap-5 rounded-3xl bg-card p-6 shadow-md border-2 border-border"
     >
       {/* Voice Error */}
-      {voiceError && (
-        <div className="flex w-full items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-body text-destructive">
-          <AlertCircle className="h-6 w-6 shrink-0" />
-          <span className="flex-1">{voiceError}</span>
-          {onClearError && (
-            <button onClick={onClearError} className="shrink-0 min-h-touch min-w-touch flex items-center justify-center">
-              <X className="h-6 w-6" />
-            </button>
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {voiceError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex w-full items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-body text-destructive"
+          >
+            <AlertCircle className="h-6 w-6 shrink-0" />
+            <span className="flex-1">{voiceError}</span>
+            {onClearError && (
+              <button onClick={onClearError} className="shrink-0 min-h-touch min-w-touch flex items-center justify-center">
+                <X className="h-6 w-6" />
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Status */}
-      <p className="text-body text-muted-foreground">{stateLabels[state]}</p>
+      <p className={`text-lg font-semibold ${isListening ? "text-accent" : "text-muted-foreground"}`}>
+        {stateLabels[state]}
+      </p>
 
-      {/* Mic Button — 96px for primary voice action */}
+      {/* Mic Button — 96px, color-coded states, ping effect */}
       <div className="relative">
-        {state === "listening" && (
-          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse-ring" />
+        {/* Ping rings when listening */}
+        {isListening && (
+          <>
+            <motion.div
+              className="absolute inset-[-8px] rounded-full border-2 border-accent/40"
+              animate={{ scale: [1, 1.3], opacity: [0.6, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
+            />
+            <motion.div
+              className="absolute inset-[-4px] rounded-full border-2 border-accent/30"
+              animate={{ scale: [1, 1.2], opacity: [0.5, 0] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut", delay: 0.3 }}
+            />
+          </>
         )}
-        <Button
-          onClick={handleMicClick}
-          disabled={disabled || state === "processing" || state === "speaking"}
-          className={`min-h-touch-xl min-w-touch-xl rounded-full ${
-            state === "listening"
-              ? "bg-destructive hover:bg-destructive/90"
-              : "bg-primary hover:bg-primary/90"
-          } text-primary-foreground`}
-          size="icon-lg"
+        <motion.div
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
         >
-          {state === "listening" ? (
-            <MicOff className="h-10 w-10" />
-          ) : (
-            <Mic className="h-10 w-10" />
-          )}
-        </Button>
+          <Button
+            onClick={handleMicClick}
+            disabled={disabled || state === "processing" || state === "speaking"}
+            className={`min-h-touch-xl min-w-touch-xl rounded-full text-primary-foreground transition-all duration-300 ${micButtonClass}`}
+            size="icon-lg"
+          >
+            {isListening ? (
+              <MicOff className="h-12 w-12" />
+            ) : (
+              <Mic className="h-12 w-12" />
+            )}
+          </Button>
+        </motion.div>
       </div>
 
       {/* Waveform */}
@@ -105,12 +150,12 @@ const VoiceControls = ({
           {Array.from({ length: 12 }).map((_, i) => (
             <motion.div
               key={i}
-              className={`w-1.5 rounded-full ${state === "speaking" ? "bg-accent" : "bg-primary"}`}
+              className={`w-1.5 rounded-full ${state === "speaking" ? "bg-primary" : "bg-accent"}`}
               animate={{
                 height: [8, 20 + Math.random() * 12, 8],
               }}
               transition={{
-                duration: state === "speaking" ? 0.8 : 0.6,
+                duration: state === "speaking" ? 0.8 : 0.5,
                 repeat: Infinity,
                 delay: i * 0.05,
               }}
@@ -119,10 +164,20 @@ const VoiceControls = ({
         </div>
       )}
 
-      {/* Transcript */}
-      {transcript && (
-        <p className="text-center text-body text-muted-foreground italic">"{transcript}"</p>
-      )}
+      {/* Transcript overlay — 3s fadeout */}
+      <AnimatePresence>
+        {showTranscript && transcript && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.3 }}
+            className="rounded-2xl bg-primary/10 px-5 py-3 text-center"
+          >
+            <p className="text-body text-primary italic">You said: "{transcript}"</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Text fallback */}
       <div className="flex w-full gap-3">
