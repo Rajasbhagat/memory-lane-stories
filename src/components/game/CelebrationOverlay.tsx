@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect } from "react";
+import confetti from "canvas-confetti";
 
 interface CelebrationOverlayProps {
   isVisible: boolean;
@@ -10,6 +11,14 @@ interface CelebrationOverlayProps {
 const CelebrationOverlay = ({ isVisible, message, onComplete }: CelebrationOverlayProps) => {
   useEffect(() => {
     if (isVisible) {
+      // Fire confetti burst
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#7fb896", "#e07850", "#f5c842", "#4a90d9"],
+      });
+
       const timer = setTimeout(onComplete, 2500);
       return () => clearTimeout(timer);
     }
@@ -32,8 +41,8 @@ const CelebrationOverlay = ({ isVisible, message, onComplete }: CelebrationOverl
             className="flex flex-col items-center gap-4 rounded-2xl bg-card p-8 shadow-xl text-center"
           >
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }}
+              transition={{ duration: 0.6, delay: 0.2 }}
               className="text-6xl"
             >
               🎉

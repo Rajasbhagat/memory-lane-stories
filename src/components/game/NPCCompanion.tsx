@@ -6,12 +6,6 @@ interface NPCCompanionProps {
   mood?: "neutral" | "happy" | "thinking";
 }
 
-const moodEmoji: Record<string, string> = {
-  neutral: "🕵️",
-  happy: "😄",
-  thinking: "🤔",
-};
-
 const NPCCompanion = ({ text, isTyping = false, mood = "neutral" }: NPCCompanionProps) => {
   return (
     <motion.div
@@ -19,13 +13,67 @@ const NPCCompanion = ({ text, isTyping = false, mood = "neutral" }: NPCCompanion
       animate={{ opacity: 1, y: 0 }}
       className="flex items-start gap-4 rounded-2xl bg-card p-4 shadow-md"
     >
-      {/* Avatar */}
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/15 text-3xl">
-        {moodEmoji[mood]}
+      {/* SVG Avatar */}
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/15 overflow-hidden">
+        <svg viewBox="0 0 64 64" className="h-14 w-14" aria-label="Detective Johnny">
+          {/* Hat */}
+          <ellipse cx="32" cy="18" rx="22" ry="6" fill="hsl(220, 20%, 35%)" />
+          <rect x="14" y="12" width="36" height="8" rx="2" fill="hsl(220, 20%, 30%)" />
+          <rect x="18" y="8" width="28" height="8" rx="4" fill="hsl(220, 20%, 35%)" />
+          {/* Hat band */}
+          <rect x="18" y="14" width="28" height="2" fill="hsl(12, 76%, 61%)" />
+          
+          {/* Face */}
+          <circle cx="32" cy="36" r="16" fill="hsl(30, 40%, 78%)" />
+          
+          {/* Eyes */}
+          {mood === "thinking" ? (
+            <>
+              <ellipse cx="26" cy="34" rx="2.5" ry="1.5" fill="hsl(220, 20%, 25%)" />
+              <ellipse cx="38" cy="33" rx="2.5" ry="1.5" fill="hsl(220, 20%, 25%)" />
+            </>
+          ) : (
+            <>
+              <circle cx="26" cy="34" r="2.5" fill="hsl(220, 20%, 25%)" />
+              <circle cx="38" cy="34" r="2.5" fill="hsl(220, 20%, 25%)" />
+              <circle cx="27" cy="33" r="0.8" fill="white" />
+              <circle cx="39" cy="33" r="0.8" fill="white" />
+            </>
+          )}
+          
+          {/* Eyebrows */}
+          {mood === "thinking" ? (
+            <>
+              <line x1="23" y1="30" x2="29" y2="29" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="35" y1="29" x2="41" y2="31" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <line x1="23" y1="30" x2="29" y2="30" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="35" y1="30" x2="41" y2="30" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+            </>
+          )}
+          
+          {/* Nose */}
+          <ellipse cx="32" cy="38" rx="1.5" ry="2" fill="hsl(30, 30%, 68%)" />
+          
+          {/* Mouth */}
+          {mood === "happy" ? (
+            <path d="M26 43 Q32 49 38 43" fill="none" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+          ) : mood === "thinking" ? (
+            <ellipse cx="34" cy="44" rx="3" ry="2" fill="hsl(220, 20%, 30%)" />
+          ) : (
+            <path d="M27 44 Q32 46 37 44" fill="none" stroke="hsl(220, 20%, 30%)" strokeWidth="1.5" strokeLinecap="round" />
+          )}
+          
+          {/* Coat collar */}
+          <path d="M18 52 L26 48 L32 52 L38 48 L46 52" fill="hsl(220, 20%, 40%)" stroke="hsl(220, 20%, 35%)" strokeWidth="1" />
+        </svg>
       </div>
 
       {/* Speech Bubble */}
       <div className="flex-1">
+        <p className="text-xs font-bold text-primary mb-1">Detective Johnny</p>
         <AnimatePresence mode="wait">
           <motion.p
             key={text}

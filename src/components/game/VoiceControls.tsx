@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mic, MicOff, Send } from "lucide-react";
+import { Mic, MicOff, Send, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { VoiceState } from "@/hooks/useVoiceSession";
@@ -12,6 +12,8 @@ interface VoiceControlsProps {
   onStopListening: () => void;
   onTextSubmit: (text: string) => void;
   disabled?: boolean;
+  voiceError?: string | null;
+  onClearError?: () => void;
 }
 
 const stateLabels: Record<VoiceState, string> = {
@@ -28,6 +30,8 @@ const VoiceControls = ({
   onStopListening,
   onTextSubmit,
   disabled = false,
+  voiceError,
+  onClearError,
 }: VoiceControlsProps) => {
   const [textInput, setTextInput] = useState("");
 
@@ -47,12 +51,27 @@ const VoiceControls = ({
     }
   };
 
+  const showWaveform = state === "listening" || state === "speaking";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center gap-4 rounded-2xl bg-card p-4 shadow-md"
     >
+      {/* Voice Error */}
+      {voiceError && (
+        <div className="flex w-full items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span className="flex-1">{voiceError}</span>
+          {onClearError && (
+            <button onClick={onClearError} className="shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Status */}
       <p className="text-sm text-muted-foreground">{stateLabels[state]}</p>
 
@@ -79,18 +98,18 @@ const VoiceControls = ({
         </Button>
       </div>
 
-      {/* Waveform placeholder */}
-      {state === "listening" && (
+      {/* Waveform — visible during listening AND speaking */}
+      {showWaveform && (
         <div className="flex h-8 items-center gap-1">
           {Array.from({ length: 12 }).map((_, i) => (
             <motion.div
               key={i}
-              className="w-1 rounded-full bg-primary"
+              className={`w-1 rounded-full ${state === "speaking" ? "bg-accent" : "bg-primary"}`}
               animate={{
                 height: [8, 20 + Math.random() * 12, 8],
               }}
               transition={{
-                duration: 0.6,
+                duration: state === "speaking" ? 0.8 : 0.6,
                 repeat: Infinity,
                 delay: i * 0.05,
               }}
@@ -110,7 +129,7 @@ const VoiceControls = ({
           value={textInput}
           onChange={(e) => setTextInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleTextSubmit()}
-          placeholder="Type your answer here..."
+          placeholder="Or type your answer here..."
           className="h-12 flex-1 text-body"
           disabled={disabled}
         />

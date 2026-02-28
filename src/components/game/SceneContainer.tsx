@@ -27,10 +27,22 @@ const SceneContainer = ({
     if (incorrectElements.includes(el.id)) {
       return "border-destructive bg-destructive/10 animate-shake";
     }
+    if (highlightedElement === el.id) {
+      return "border-primary bg-primary/20 ring-2 ring-primary animate-pulse";
+    }
     if (interactive) {
       return "border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer";
     }
     return "border-border bg-card opacity-60";
+  };
+
+  const getSettingLabel = () => {
+    switch (setting) {
+      case "operations-room": return "🏢 Operations Room";
+      case "safehouse-kitchen": return "🏠 Safehouse Kitchen";
+      case "evidence-run": return "🗺️ Evidence Run";
+      default: return "";
+    }
   };
 
   return (
@@ -39,6 +51,11 @@ const SceneContainer = ({
       animate={{ opacity: 1 }}
       className="flex-1 overflow-auto"
     >
+      {/* Scene header */}
+      <div className="mb-2 text-center">
+        <span className="text-xs font-medium text-muted-foreground">{getSettingLabel()}</span>
+      </div>
+
       <div className="grid grid-cols-2 gap-3 p-2 sm:grid-cols-3">
         {elements.map((el) => (
           <motion.button
@@ -53,6 +70,9 @@ const SceneContainer = ({
               {getIcon(el.id)}
             </span>
             <span className="text-sm font-semibold text-card-foreground">{el.label}</span>
+            {el.detail && (
+              <span className="text-xs text-muted-foreground">{el.detail}</span>
+            )}
             {foundElements.includes(el.id) && (
               <span className="text-xs text-primary font-medium">✓ Found</span>
             )}
@@ -69,20 +89,32 @@ function getIcon(id: string): string {
     "power-bank": "🔋",
     "spare-battery": "🪫",
     folder: "📁",
+    "folder-duplicate": "📁",
     "usb-drive": "💾",
     "signed-note": "📝",
+    "signed-note-duplicate": "📝",
     kettle: "☕",
     toaster: "🍞",
     "pan-on-stove": "🍳",
     thermos: "🫗",
+    documents: "📄",
     "documents-near-heat": "📄",
+    "coffee-mug": "☕",
     clock: "🕐",
+    "sticky-note": "📌",
     window: "🪟",
+    fridge: "🧊",
     "route-direct": "🛣️",
+    "route-scenic": "🌳",
+    "route-shortcut": "🚧",
     "route-safe": "🌳",
     "route-highway": "🚗",
     "coffee-shop": "☕",
     "shortcut-sign": "🪧",
+    "street-performer": "🎭",
+    "print-shop-door": "🏪",
+    pedestrians: "🚶",
+    "street-signs": "🪧",
     "bus-stop": "🚏",
     "park-bench": "🪑",
     "envelope-a": "✉️",
