@@ -59,12 +59,13 @@ const Play = () => {
   // Auto-advance from story — longer delay for longer narratives
   useEffect(() => {
     if (state.phase === "story" && currentPhase) {
+      console.log("[Play] Story phase — calling playNarration");
       playNarration(currentPhase.narrative);
       const readTime = Math.max(5000, currentPhase.narrative.length * 60);
       const timer = setTimeout(onStoryComplete, readTime);
       return () => clearTimeout(timer);
     }
-  }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex]);
+  }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex, playNarration]);
 
   // Skip-speak timeout: auto-advance to touch after 15s
   useEffect(() => {

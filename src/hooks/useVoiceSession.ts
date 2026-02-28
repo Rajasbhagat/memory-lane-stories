@@ -43,6 +43,8 @@ export function useVoiceSession() {
   // Gemini TTS — warm Sulafat voice
   const playNarration = useCallback(async (text: string) => {
     setVoiceState("speaking");
+    console.log("[TTS] playNarration called, text length:", text.length);
+    console.log("[TTS] URL:", `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`);
 
     try {
       const response = await fetch(
