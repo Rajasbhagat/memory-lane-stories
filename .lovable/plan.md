@@ -33,7 +33,7 @@ Saved all 5 implementation guides to `docs/implementation/`.
 
 ---
 
-## Step 4: Core Screen — Summary.tsx Enhancement
+## Step 4: Core Screen — Summary.tsx Enhancement ✅ DONE
 - Trophy icon (80px) in colored circle (128px)
 - Player name in `text-4xl` heading
 - Skill breakdown with progress bars
