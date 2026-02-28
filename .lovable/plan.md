@@ -9,7 +9,7 @@ Saved all 5 implementation guides to `docs/implementation/`.
 
 ---
 
-## Step 2: Core Screen — Index.tsx Redesign
+## Step 2: Core Screen — Index.tsx Redesign ✅ DONE
 - Hero icon 120px in larger circle, heading `text-4xl`, subtitle `text-xl`
 - Name input 72px height, `text-xl`, `rounded-2xl`
 - Profile card: stat icons 40px, stat values `text-3xl`, rank emoji `text-6xl`, padding `p-8`, 2-col grid
