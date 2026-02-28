@@ -26,7 +26,7 @@ const Play = () => {
     dismissHint,
   } = useGameState();
 
-  const { voiceState, transcript, startListening, stopListening, submitText } = useVoiceSession();
+  const { voiceState, transcript, npcReply, startListening, stopListening, submitText, processWithGemini } = useVoiceSession();
 
   // Auto-advance from story after delay
   useEffect(() => {
@@ -53,13 +53,30 @@ const Play = () => {
     }
   }, [state.isComplete, navigate, state.stats]);
 
+  const scenarioContext = currentPhase
+    ? `Scenario: ${currentScenario?.title}. Phase: ${currentPhase.id}. Prompt: ${currentPhase.prompt}. Wrong elements: ${currentPhase.elements.filter(e => e.isWrong).map(e => e.label).join(', ')}.`
+    : "";
+
+  // When transcript arrives from speech recognition, send to Gemini
+  useEffect(() => {
+    if (transcript && voiceState === "processing" && state.phase === "speak") {
+      processWithGemini(transcript, scenarioContext);
+    }
+  }, [transcript, voiceState]);
+
+  // When Gemini replies, advance to touch phase
+  useEffect(() => {
+    if (npcReply && state.phase === "speak") {
+      setTimeout(onSpeakComplete, 1500);
+    }
+  }, [npcReply]);
+
   const handleVoiceSubmit = useCallback(
     (text: string) => {
-      submitText(text);
-      // After any voice/text input, move to touch phase
-      setTimeout(onSpeakComplete, 600);
+      submitText(text, scenarioContext);
+      setTimeout(onSpeakComplete, 1500);
     },
-    [submitText, onSpeakComplete],
+    [submitText, onSpeakComplete, scenarioContext],
   );
 
   if (!currentScenario || !currentPhase) return null;
@@ -80,9 +97,9 @@ const Play = () => {
     state.phase === "story"
       ? currentPhase.narrative
       : state.phase === "speak"
-        ? currentPhase.prompt
+        ? (npcReply || currentPhase.prompt)
         : state.phase === "touch"
-          ? "Now show me — tap on what's wrong!"
+          ? (npcReply || "Now show me — tap on what's wrong!")
           : state.phase === "celebrate"
             ? currentPhase.successMessage
             : state.phase === "transition"
