@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
 import type { ScenarioElement } from "@/data/scenarios";
+import sceneOperationsRoom from "@/assets/scene-operations-room.jpg";
+import sceneSafehouseKitchen from "@/assets/scene-safehouse-kitchen.jpg";
+import sceneEvidenceRun from "@/assets/scene-evidence-run.jpg";
 
 interface SceneContainerProps {
   setting: string;
@@ -10,6 +13,12 @@ interface SceneContainerProps {
   foundElements: string[];
   interactive: boolean;
 }
+
+const sceneImages: Record<string, string> = {
+  "operations-room": sceneOperationsRoom,
+  "safehouse-kitchen": sceneSafehouseKitchen,
+  "evidence-run": sceneEvidenceRun,
+};
 
 const SceneContainer = ({
   setting,
@@ -31,32 +40,32 @@ const SceneContainer = ({
       return "border-primary bg-primary/20 ring-2 ring-primary animate-pulse";
     }
     if (interactive) {
-      return "border-border bg-card hover:border-primary/50 hover:bg-primary/5 cursor-pointer";
+      return "border-border bg-card/90 hover:border-primary/50 hover:bg-primary/5 cursor-pointer backdrop-blur-sm";
     }
-    return "border-border bg-card opacity-60";
+    return "border-border bg-card/80 opacity-60 backdrop-blur-sm";
   };
 
-  const getSettingLabel = () => {
-    switch (setting) {
-      case "operations-room": return "🏢 Operations Room";
-      case "safehouse-kitchen": return "🏠 Safehouse Kitchen";
-      case "evidence-run": return "🗺️ Evidence Run";
-      default: return "";
-    }
-  };
+  const bgImage = sceneImages[setting];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex-1 overflow-auto"
+      className="flex-1 overflow-auto rounded-2xl"
     >
-      {/* Scene header */}
-      <div className="mb-2 text-center">
-        <span className="text-xs font-medium text-muted-foreground">{getSettingLabel()}</span>
-      </div>
+      {/* Scene illustration */}
+      {bgImage && (
+        <div className="relative mb-3 overflow-hidden rounded-2xl">
+          <img
+            src={bgImage}
+            alt={`Scene: ${setting}`}
+            className="w-full h-40 object-cover rounded-2xl"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent rounded-2xl" />
+        </div>
+      )}
 
-      <div className="grid grid-cols-2 gap-3 p-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 p-1 sm:grid-cols-3">
         {elements.map((el) => (
           <motion.button
             key={el.id}
@@ -98,7 +107,6 @@ function getIcon(id: string): string {
     "pan-on-stove": "🍳",
     thermos: "🫗",
     documents: "📄",
-    "documents-near-heat": "📄",
     "coffee-mug": "☕",
     clock: "🕐",
     "sticky-note": "📌",
@@ -107,16 +115,12 @@ function getIcon(id: string): string {
     "route-direct": "🛣️",
     "route-scenic": "🌳",
     "route-shortcut": "🚧",
-    "route-safe": "🌳",
-    "route-highway": "🚗",
     "coffee-shop": "☕",
     "shortcut-sign": "🪧",
     "street-performer": "🎭",
     "print-shop-door": "🏪",
     pedestrians: "🚶",
     "street-signs": "🪧",
-    "bus-stop": "🚏",
-    "park-bench": "🪑",
     "envelope-a": "✉️",
     "envelope-b": "✉️",
     "envelope-c": "✉️",

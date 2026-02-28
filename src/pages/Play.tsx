@@ -45,10 +45,13 @@ const Play = () => {
   } = useVoiceSession();
 
   // Auto-advance from story after delay + TTS
+  // Auto-advance from story — longer delay for longer narratives
   useEffect(() => {
     if (state.phase === "story" && currentPhase) {
       playNarration(currentPhase.narrative);
-      const timer = setTimeout(onStoryComplete, 4000);
+      // ~60ms per character for reading time, minimum 5s
+      const readTime = Math.max(5000, currentPhase.narrative.length * 60);
+      const timer = setTimeout(onStoryComplete, readTime);
       return () => clearTimeout(timer);
     }
   }, [state.phase, onStoryComplete, state.currentPhaseIndex, state.currentScenarioIndex]);
